@@ -4,6 +4,7 @@ Plots for paper that use models primarily
 import ResolvedStellarPops as rsp
 import numpy as np
 import matplotlib.pylab as plt
+import os
 
 from astroML.stats import binned_statistic_2d
 
@@ -14,13 +15,13 @@ def scrap():
      covs = [msfhs[i].cov for i in range(len(msfhs))]
      cov_ins = [msfhs[i].cov_in for i in range(len(msfhs))]
      best_fits = [msfhs[i].best_fit for i in range(len(msfhs))]
- 
+
      fig, ax = plt.subplots()
      sc = ax.scatter(covs, cov_ins, c=np.log10(best_fits), marker='s', s=300)
      plt.colorbar(sc)
      ax.set_ylabel('Fake input COV')
      ax.set_xlabel('SFH recovery COV')
-     return ax 
+     return ax
 
     for i in range(len(ucovs)):
         #fig, ax = plt.subplots()
@@ -28,7 +29,7 @@ def scrap():
             axs[i].plot(msfhs[j].data.lagei, msfhs[isame[i]].data.csfr - msfhs[j].data.csfr,
                             lw=2, label='COV=%.1f' % (covs[j]), ls='steps-pre',
                             color=cols[k])
-        
+
         axs[i].set_title('COV in fake = %.1f' % ucovs[i])
         axs[i].set_xlim(8.8, 9.4)
         #axs[i].set_ylim(-2, 1.5)
@@ -132,6 +133,7 @@ def plot_compare_at_eep(Z=0.004, comp='OV0.5', hb=False, eep_name='POINT_C',
     ax.legend(loc=0, frameon=False, fontsize=16)
     return ax
 
+
 def plot_compare_tracks(sandro=True, Z=0.004):
     # not sure if it's needed, but makes a pretty hrd.
     cov_strs = ['OV0.3', 'OV0.4', 'OV0.5', 'OV0.6', 'OV0.7']
@@ -170,7 +172,8 @@ def plot_compare_tracks(sandro=True, Z=0.004):
     ax.set_xlabel(r'$\log T_{\rm{eff}}\ \rm{(K)}$', fontsize=20)
     ax.tick_params(labelsize=16)
     ax.legend(loc=0, frameon=False, fontsize=16)
-    
+
+
 def cov_cluster_grid_plots(ss='sfh', base='/Users/phil/research/clusters/n419/match'):
     sfh_files = rsp.fileio.get_files(base, '*' + ss)
     msfhs = [rsp.match.utils.MatchSFH(s) for s in sfh_files]
@@ -197,14 +200,16 @@ def cov_cluster_grid_plots(ss='sfh', base='/Users/phil/research/clusters/n419/ma
 
 def cov_testgrid_plots(ss='zc'):
     '''make SFR vs Log Age, Z vs Log Age, and Best fit vs COV plots'''
-    base = '/Users/phil/research/clusters/n419/match/fake_tests'
+    #base = '/Users/phil/research/clusters/n419/match/fake_tests'
+    base = '/home/rosenfield/research/clusters/n419/match/fake/fake_9.00_9.20_1.44_0.004_0.05'
+
     sfh_files = rsp.fileio.get_files(base, '*' + ss)
     msfhs = [rsp.match.utils.MatchSFH(s) for s in sfh_files]
 
     for i in range(len(msfhs)):
         # assuming n419_s12_cov7_c4in format
         msfhs[i].cov_in = \
-            float(msfhs[i].name.split('_c')[-2].replace('cov', '')) * .1
+            float(msfhs[i].name.split('_c')[-2].replace('ov', '')) * .1
         msfhs[i].cov = \
             float(msfhs[i].name.split('_c')[-1].replace('in.%s' % ss, '')) * .1
 
@@ -235,7 +240,7 @@ def cov_testgrid_plots(ss='zc'):
         axs[0].set_xlim(8.8, 9.4)
         axs[-1].set_xlabel(r'$\log Age\ \rm{(yr)}$', fontsize=20)
         axs[2].set_ylabel(ylabs[i], fontsize=20)
-        plt.savefig('cov_testgrid_%s_lage.png' % val.lower())
+        plt.savefig(os.path.join(base, 'cov_testgrid_%s_lage.png' % val.lower()))
 
     ibins = np.digitize(cov_ins, bins=ucovs) - 1
     bestfits = [msfhs[i].bestfit for i in range(len(msfhs))]
@@ -249,17 +254,17 @@ def cov_testgrid_plots(ss='zc'):
                  color=cols[i])
          for i in range(ncovs)]
     ax.set_xlim(0.29, 0.71)
-    ax.set_ylim(10000, 70000)
+    #ax.set_ylim(10000, 70000)
     ax.set_ylabel(r'$\rm{Prob.}$', fontsize=20)
     ax.set_xlabel(r'$\Lambda_c\ \rm{in\ fake}$', fontsize=20)
     ax.legend(loc=0, frameon=False, numpoints=1)
-    plt.savefig('cov_testgrid_prob_cov.png')
+    plt.savefig(os.path.join(base, 'cov_testgrid_prob_cov.png'))
 
 
 def compare_khd(tracks, fusion=True, convection=True, khd_dict= {'CONV':  'black'}):
     fig, axs = plt.subplots(nrows=3, figsize=(10, 8))
     fig.subplots_adjust(left=0.08, right=0.95, top=0.95, hspace=0.4)
-    for i in range(len(tracks)):    
+    for i in range(len(tracks)):
         td.kippenhahn(tracks[i], heb_only=False, between_ptcris=[4,11],
                       xscale='linear', khd_dict=khd_dict, ax=axs[i],
                       fusion=fusion)
@@ -272,10 +277,11 @@ def compare_khd(tracks, fusion=True, convection=True, khd_dict= {'CONV':  'black
 
     return axs
 
+
 def compare_covs_khd():
     base = '/Users/phil/research/stel_evo/CAF09_D13/'
     cov = [0.3, 0.5, 0.7]
-    
+
     track_names = [base + 'tracks/MC_S13_OV0.3_Z0.004_Y0.2557/Z0.004Y0.2557OUTA1.74_F7_M2.40.PMS',
                    base + 'tracks/MC_S13_OV0.5_Z0.004_Y0.2557/Z0.004Y0.2557OUTA1.74_F7_M2.40.PMS',
                    base + 'tracks/MC_S13_OV0.7_Z0.004_Y0.2557/Z0.004Y0.2557OUTA1.74_F7_M2.40.PMS']
@@ -294,9 +300,10 @@ def compare_covs_khd():
     axs[1].set_xlim(530, 544.5)
     axs[2].set_xlim(577, 586.5)
     plt.savefig('/Users/phil/research/clusters/n419/khd_compare_cov_Z0.004_M2.00.png')
-    
+
+
 def compare_covs(tracks):
-    
+
     # scrap...
     columns = ['Xsup', 'Ysup', 'Rstar']
     labels = ['Xs', 'Ys', 'R']
@@ -313,20 +320,20 @@ def compare_covs(tracks):
             else:
                 ydata = track.data[col]
             ax.plot(xdata, ydata, lw=3, color=colors[i], label='$\Lambda_c=%.1f$' % track.cov)
-        
+
             ax.set_ylabel('$%s$' % lab)
             #ax.set_ylim(np.min(ydata), np.max(ydata))
             #ax.yaxis.set_major_locator(MaxNLocator(4))
             #ax.xaxis.set_major_formatter(NullFormatter())
-    
+
             ax.vlines(track.data.AGE[tracks[i].iptcri[5]]/1e6, *ax.get_ylim(),
                       color='grey', lw=2)
             ax.vlines(track.data.AGE[tracks[i].iptcri[10]]/1e6, *ax.get_ylim(),
                       color='grey', lw=2)
-    
+
     [ax.set_xlim(475,600) for ax in axs]
-    
-    
+
+
 def eep_summary_table(tracks, outfmt='latex', isort='mass', diff_table=True):
     fmt = '%.1f %g %g %.2e %.2e %.2e %.2e %.2e %.2e \n'
 
@@ -337,7 +344,7 @@ def eep_summary_table(tracks, outfmt='latex', isort='mass', diff_table=True):
         rd = (x.__getattribute__(attr) - ref.__getattribute__(attr)) \
               / ref.__getattribute__(attr)
         return rd
-    
+
     if outfmt == 'latex':
         fmt = fmt.replace(' ', ' & ').replace('\n', ' \\\\ \n')
 
@@ -346,14 +353,14 @@ def eep_summary_table(tracks, outfmt='latex', isort='mass', diff_table=True):
     ts = rsp.padova_tracks.TrackSet()
     if type(tracks[0]) == str:
         print('loading tracks')
-        tracks = [rsp.padova_tracks.Track(t) for t in tracks] 
-    
+        tracks = [rsp.padova_tracks.Track(t) for t in tracks]
+
     for t in tracks:
         t.cov = float(t.base.split('OV')[1].split('_')[0])
-    
+
     if isort == 'mass':
         tracks = sorted(tracks, key=keyfunc)
-    
+
     ts.tracks = tracks
     ts._load_ptcri(ptcri_loc, sandro=False)
     for t in ts.tracks:
@@ -368,7 +375,7 @@ def eep_summary_table(tracks, outfmt='latex', isort='mass', diff_table=True):
         t.tHe = np.sum(t.data.Dtime[heburn])
         outstr.append(fmt % (t.cov, t.Z, t.mass, t.ageMSTO, t.rMSTO, t.tH,
                              t.ageTRGB, t.rTRGB, t.tHe))
-    
+
     outstr.append('\n\n OV Z Mass MSTOage MSTOradius tauH TRGBage TRGBRadius tauHe \n')
     if diff_table:
         fmt2 = fmt.replace('.2e', '+.2f')
@@ -390,5 +397,9 @@ def eep_summary_table(tracks, outfmt='latex', isort='mass', diff_table=True):
             outstr.append(fmt2 % (t.cov, t.Z, t.mass, dageMSTO, drMSTO, dtH,
                                   dageTRGB, drTRGB, dtHe))
 
-    
+
     return outstr
+
+
+if __name__ == "__main__":
+    cov_testgrid_plots()
