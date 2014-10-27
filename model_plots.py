@@ -198,6 +198,46 @@ def cov_cluster_grid_plots(ss='sfh', base='/Users/phil/research/clusters/n419/ma
         plt.savefig('n419_covgrid_%s_lage.png' % val.lower())
 
 
+def match_diagnostic_plots(base=os.getcwd(), sfh_str='*cov?.sfh', cmd_str='*cov?.*cmd',
+                           filter1=r'F555W', filter2=r'F814W\ {\rm (HRC)}',
+                           labels='default'):
+    from matplotlib.ticker import NullFormatter
+
+    cmd_files = rsp.fileio.get_files(base, cmd_str)
+    cmd_files = sorted(cmd_files, key=lambda x: x[-9])
+    sfh_files = rsp.fileio.get_files(base, sfh_str)
+    sfh_files = sorted(sfh_files, key=lambda x: x[-5])
+
+    msfhs = [rsp.match.utils.MatchSFH(s) for s in sfh_files]
+
+    cols = ['darkred', 'orange', 'black', 'navy']
+    fig, (ax1, ax2) = plt.subplots(nrows=2)
+    for i, msfh in enumerate(msfhs):
+        lab = msfh.name.split('_')[1].replace('.sfh', '$').replace('cov', r'$\Lambda_c=0.')
+        plt_kw = {'color': cols[i], 'label': lab}
+        msfh.age_plot(ax=ax1, plt_kw=plt_kw)
+        msfh.age_plot(val='mh', convertz=True, ax=ax2, plt_kw=plt_kw)
+        ax1.xaxis.set_major_formatter(NullFormatter())
+        plt.subplots_adjust(hspace=0.1)
+    plt.legend(loc=0, frameon=False)
+    plt.savefig('n419_cov_match.png')
+
+    if labels == 'default':
+        labels = [r'${\rm %s}$' % i for i in ('data', 'model', 'diff', 'sig')]
+
+    for i, cmd_file in enumerate(cmd_files):
+        labels[1] = '${\\rm %s}$' % msfhs[i].name.split('.')[0].replace('_', '\ ')
+        labels[-1] = '$%.1f$' % msfhs[i].bestfit
+        rsp.match.graphics.pgcmd(cmd_file, filter1=filter1, filter2=filter2,
+                                 labels=labels,
+              figname=cmd_file + '.png')
+
+    ssp_files = rsp.fileio.get_files(base, '*ssp*scrn')
+    if len(ssp_files) > 0:
+        [rsp.match.utils.strip_header(ssp) for ssp in ssp_files]
+    return
+
+
 def cov_testgrid_plots(ss='zc'):
     '''make SFR vs Log Age, Z vs Log Age, and Best fit vs COV plots'''
     #base = '/Users/phil/research/clusters/n419/match/fake_tests'
@@ -250,7 +290,7 @@ def cov_testgrid_plots(ss='zc'):
         for k, j in enumerate(np.nonzero(ibins == i)[0]):
             ax.plot(cov_ins[j], bestfits[j], 'o', ms=15, color=cols[k])
 
-    _ = [ax.plot(-99, -99, 'o', label=r'$\Lambda_{cc}=%.1f$' % ucovs[i],
+    _ = [ax.plot(-99, yval[0], 'o', label=r'$\Lambda_{cc}=%.1f$' % ucovs[i],
                  color=cols[i])
          for i in range(ncovs)]
     ax.set_xlim(0.29, 0.71)
@@ -403,3 +443,4 @@ def eep_summary_table(tracks, outfmt='latex', isort='mass', diff_table=True):
 
 if __name__ == "__main__":
     cov_testgrid_plots()
+    match_diagnostic_plots()
