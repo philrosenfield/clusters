@@ -231,10 +231,13 @@ def match_diagnostic_plots(base=os.getcwd(), sfh_str='*cov?.sfh', cmd_str='*cov?
         rsp.match.graphics.pgcmd(cmd_file, filter1=filter1, filter2=filter2,
                                  labels=labels,
               figname=cmd_file + '.png')
+        rsp.match.utils.match_stats(sfh_files[i], cmd_file, nfp_nonsfr=5,
+                                    nmc_runs=10000, outfile=cmd_file+'.dat')
 
     ssp_files = rsp.fileio.get_files(base, '*ssp*scrn')
     if len(ssp_files) > 0:
         [rsp.match.utils.strip_header(ssp) for ssp in ssp_files]
+
     return
 
 
@@ -442,5 +445,6 @@ def eep_summary_table(tracks, outfmt='latex', isort='mass', diff_table=True):
 
 
 if __name__ == "__main__":
-    cov_testgrid_plots()
+    #import pdb; pdb.set_trace()
+    #cov_testgrid_plots()
     match_diagnostic_plots()

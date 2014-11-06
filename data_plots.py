@@ -9,7 +9,7 @@ def _plot_cmd(color, mag, color_err=None, mag_err=None, inds=None, ax=None):
     '''plot a cmd with errors'''
     if inds is None:
         inds = np.arange(len(mag))
-    
+
     if ax is None:
         fig, ax = plt.subplots(figsize=(12,12))
     ax.plot(color[inds], mag[inds], '.', color='black', ms=4)
@@ -41,7 +41,7 @@ def cmd(fitsfile, filter1, filter2, inset=False):
     mag = gal.data[filter2]# - 0.35
     mag1 = gal.data[filter1]# - 0.1
     color = mag1 - mag
-    
+
     filt1 = filter1.split('_')[0]
     filt2 = filter2.split('_')[0]
     fextra = '(%s)' % filter2.split('_')[1]
@@ -50,10 +50,12 @@ def cmd(fitsfile, filter1, filter2, inset=False):
     good, = np.nonzero((np.abs(color)<30) & (np.abs(mag) < 30))
     fig, ax = plt.subplots(figsize=(12, 12))
     ax = _plot_cmd(color, mag, color_err=color_err, mag_err=mag_err, inds=good, ax=ax)
-    
+
     plt.tick_params(labelsize=18)
-    ax.set_ylabel(r'$%s\ %s$' % (filt2, fextra), fontsize=24)
-    ax.set_xlabel(r'$%s-%s\ %s$' % (filt1, filt2, fextra), fontsize=24)
+    #ax.set_ylabel(r'$%s\ %s$' % (filt2, fextra), fontsize=24)
+    #ax.set_xlabel(r'$%s-%s\ %s$' % (filt1, filt2, fextra), fontsize=24)
+    ax.set_ylabel(r'$%s$' % filt2, fontsize=24)
+    ax.set_xlabel(r'$%s-%s$' % (filt1, filt2), fontsize=24)
     ax.set_ylim(26., 14)
     ax.set_xlim(-0.5, 4)
     if inset:
@@ -86,7 +88,7 @@ def unique_inds(arr):
 def plot_isochrone_grid(iso_files, ax_by='age'):
     isos = [rsp.fileio.readfile(i, col_key_line=1) for i in iso_files]
     fnames = [i.split('/')[-1].replace('.dat', '') for i in iso_files]
-    
+
     ovs = np.array([i.split('_')[2].replace('OV','') for i in fnames],
                    dtype=float)
     un_ovs, iovs = unique_inds(ovs)
@@ -96,7 +98,7 @@ def plot_isochrone_grid(iso_files, ax_by='age'):
                      dtype=float)
     un_ages, iages = unique_inds(ages)
     agestr = r'$\log Age=%.1f$'
-    
+
     if ax_by == 'age':
         nax = len(un_ages)
         iax = iages
@@ -115,11 +117,11 @@ def plot_isochrone_grid(iso_files, ax_by='age'):
         anns = un_ovs
         annfmt = ovstr
         ileg = 0
-        
+
     fig, axs = plt.subplots(ncols=nax, figsize=(20, 6), sharex=True,
                             sharey=True)
     fig.subplots_adjust(left=0.05, right=0.95, top=0.95, wspace=0.08)
-    
+
     #colors = brewer2mpl.get_map('RdYlBu', 'Diverging', 5).mpl_colors
     colors = rsp.graphics.discrete_colors(len(labs))
     #colors = ['red', 'black', 'blue', 'orange', 'green']
@@ -128,12 +130,12 @@ def plot_isochrone_grid(iso_files, ax_by='age'):
     for i, iso in enumerate(isos):
         axs[iax[i]].plot(iso['logTe'], iso['logLLo'], color=colors[icols[i]],
                            alpha=0.5)
-    
+
     # fake the legend
     [axs[ileg].plot(-99, -99, color=colors[i], lw=3, alpha=0.3,
                   label=labfmt % labs[i]) for i in range(len(labs))]
     axs[ileg].legend(loc=2, fontsize=16)
-    
+
     for i, ax in enumerate(axs):
         ax.set_xlabel(r'$\log T_{\rm eff}\ (K)$', fontsize=20)
         ax.grid(color='k')
@@ -141,4 +143,3 @@ def plot_isochrone_grid(iso_files, ax_by='age'):
     axs[0].set_ylim(0.6, 2.2)
     axs[0].set_xlim(4.02, 3.65)
     axs[0].set_ylabel(r'$\log L\ (L_\odot)$', fontsize=20)
-
