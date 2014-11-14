@@ -6,8 +6,6 @@ import numpy as np
 import matplotlib.pylab as plt
 import os
 
-from astroML.stats import binned_statistic_2d
-
 td = rsp.padova_tracks.TrackDiag()
 
 def scrap():
