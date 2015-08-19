@@ -1,4 +1,4 @@
-import brewer2mpl
+import palettable
 import pyfits
 import ResolvedStellarPops as rsp
 import matplotlib
@@ -122,7 +122,7 @@ def plot_isochrone_grid(iso_files, ax_by='age'):
                             sharey=True)
     fig.subplots_adjust(left=0.05, right=0.95, top=0.95, wspace=0.08)
 
-    #colors = brewer2mpl.get_map('RdYlBu', 'Diverging', 5).mpl_colors
+    #colors = palettable.get_map('RdYlBu', 'Diverging', 5).mpl_colors
     colors = rsp.graphics.discrete_colors(len(labs))
     #colors = ['red', 'black', 'blue', 'orange', 'green']
 
