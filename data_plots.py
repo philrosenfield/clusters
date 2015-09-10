@@ -1,22 +1,45 @@
+import argparse
 import palettable
-import pyfits
+from astropy.io import fits
 import ResolvedStellarPops as rsp
 import matplotlib
 import matplotlib.pylab as plt
 import numpy as np
+import sys
 
-def _plot_cmd(color, mag, color_err=None, mag_err=None, inds=None, ax=None):
+def _plot_cmd(color, mag, color_err=None, mag_err=None, inds=None, ax=None,
+              scatter=False):
     '''plot a cmd with errors'''
     if inds is None:
         inds = np.arange(len(mag))
 
     if ax is None:
         fig, ax = plt.subplots(figsize=(12,12))
-    ax.plot(color[inds], mag[inds], '.', color='black', ms=4)
-    if not None in [color_err, mag_err]:
-        ax.errorbar(color[inds], mag[inds], fmt=None, xerr=color_err[inds],
-                    yerr=mag_err[inds], capsize=0, ecolor='gray')
+    if not scatter:
+        ax.plot(color[inds], mag[inds], '.', color='black', ms=3)
+        if not None in [color_err, mag_err]:
+            ax.errorbar(color[inds], mag[inds], fmt=None, xerr=color_err[inds],
+                        yerr=mag_err[inds], capsize=0, ecolor='gray')
+    else:
+        if not None in [color_err, mag_err]:
+            color_err = color_err[inds]
+            mag_err = mag_err[inds]
+        ax = rsp.graphics.plotting.scatter_contour(color[inds], mag[inds],
+                                              levels=5, bins=200, threshold=400,
+                                              log_counts=False, histogram2d_args={},
+                                              plot_args={'edgecolors': 'none', 'color': 'k',
+                                                         'marker': 'o', 's': 3},
+                                              contour_args={},
+                                              ax=ax, xerr=color_err,
+                                              yerr=mag_err)
     return ax
+
+
+def _plot_xy(x, y, radii=[100, 500, 1000]):
+    hx, bx = np.histogram(x, bins=500)
+    hy, by = np.histogram(y, bins=500)
+    ix = np.argmax(hx)
+    iy = np.argmax(hy)
 
 
 def add_inset(ax0, extent, xlims, ylims):
@@ -30,34 +53,54 @@ def add_inset(ax0, extent, xlims, ylims):
     ax0.add_patch(rect)
     return ax
 
-#fig, axs = cmd('../10396_NGC419-HRC.gst.fits', 'F555W_VEGA', 'F814W_VEGA', True)
 
-def cmd(fitsfile, filter1, filter2, inset=False):
+def cmd(filename, filter1, filter2, inset=False, scatter=False,
+        xyfile=None, fextra='VEGA'):
     '''
     plot cmd of data, two insets are hard coded.
     '''
     gal = rsp.StarPop()
-    gal.data = pyfits.getdata(fitsfile)
-    mag = gal.data[filter2]# - 0.35
-    mag1 = gal.data[filter1]# - 0.1
-    color = mag1 - mag
+    if xyfile is not None:
+        _, _, x, y = np.loadtxt(xyfile, unpack=True)
+    else:
+        x = np.array([])
+        y = np.array([])
 
-    filt1 = filter1.split('_')[0]
-    filt2 = filter2.split('_')[0]
-    fextra = '(%s)' % filter2.split('_')[1]
-    mag_err = gal.data['%s_ERR' % filt2]
-    color_err = np.sqrt(gal.data['%s_ERR' % filt1] ** 2 + mag_err ** 2)
-    good, = np.nonzero((np.abs(color)<30) & (np.abs(mag) < 30))
-    fig, ax = plt.subplots(figsize=(12, 12))
-    ax = _plot_cmd(color, mag, color_err=color_err, mag_err=mag_err, inds=good, ax=ax)
+    try:
+        gal.data = fits.getdata(filename)
+        mag = gal.data['{}_{}'.format(filter2, fextra)]
+        mag1 = gal.data['{}_{}'.format(filter1, fextra)]
+        color = mag1 - mag
+        mag_err = gal.data['%s_ERR' % filter2]
+        color_err = np.sqrt(gal.data['%s_ERR' % filter1] ** 2 + mag_err ** 2)
+        x = gal.data.X
+        y = gal.data.Y
+    except:
+        mag1, mag2 = np.genfromtxt(filename, unpack=True)
+        color = mag1 - mag2
+        mag = mag2
+        mag_err = None
+        color_err = None
+
+    good, = np.nonzero((np.abs(color) < 30) & (np.abs(mag) < 30))
+    if len(x) == 0:
+        fig, ax = plt.subplots(figsize=(12, 12))
+    else:
+        fig, (ax, axxy) = plt.subplots(ncols=2, figsize=(16, 8))
+
+    ax = _plot_cmd(color, mag, color_err=color_err, mag_err=mag_err, inds=good,
+                   ax=ax, scatter=scatter)
 
     plt.tick_params(labelsize=18)
     #ax.set_ylabel(r'$%s\ %s$' % (filt2, fextra), fontsize=24)
     #ax.set_xlabel(r'$%s-%s\ %s$' % (filt1, filt2, fextra), fontsize=24)
-    ax.set_ylabel(r'$%s$' % filt2, fontsize=24)
-    ax.set_xlabel(r'$%s-%s$' % (filt1, filt2), fontsize=24)
+    ax.set_ylabel(r'$%s$' % filter2, fontsize=24)
+    ax.set_xlabel(r'$%s-%s$' % (filter1, filter2), fontsize=24)
     ax.set_ylim(26., 14)
     ax.set_xlim(-0.5, 4)
+
+    axs = [ax]
+
     if inset:
         ax1 = add_inset(ax, [0.45, 0.45, 0.42, 0.3], [0., 0.6], [19.6, 21.7])
         ax1 = _plot_cmd(color, mag, color_err=color_err, mag_err=mag_err,
@@ -65,9 +108,15 @@ def cmd(fitsfile, filter1, filter2, inset=False):
         ax2 = add_inset(ax, [0.18, 0.74, .19, .15], [0.85, 1.1], [18.2, 19.2])
         ax2 = _plot_cmd(color, mag, color_err=color_err, mag_err=mag_err,
                         inds=good, ax=ax2)
-        return fig, (ax, ax1, ax2)
-    else:
-        return fig, ax
+        axs.extend([ax1, ax2])
+
+    if len(x) > 0:
+        axxy.plot(x[good], y[good],  '.', color='black', ms=3)
+        axxy.set_ylabel(r'$Y$', fontsize=24)
+        axxy.set_xlabel(r'$X$', fontsize=24)
+        axs.append(axxy)
+
+    return fig, axs
 
 
 def overplot_iso(data):
@@ -84,6 +133,7 @@ def unique_inds(arr):
     un_arr = np.unique(arr)
     iarr = np.digitize(arr, bins=un_arr) - 1
     return un_arr, iarr
+
 
 def plot_isochrone_grid(iso_files, ax_by='age'):
     isos = [rsp.fileio.readfile(i, col_key_line=1) for i in iso_files]
@@ -122,7 +172,7 @@ def plot_isochrone_grid(iso_files, ax_by='age'):
                             sharey=True)
     fig.subplots_adjust(left=0.05, right=0.95, top=0.95, wspace=0.08)
 
-    #colors = palettable.get_map('RdYlBu', 'Diverging', 5).mpl_colors
+    #colors = brewer2mpl.get_map('RdYlBu', 'Diverging', 5).mpl_colors
     colors = rsp.graphics.discrete_colors(len(labs))
     #colors = ['red', 'black', 'blue', 'orange', 'green']
 
@@ -143,3 +193,45 @@ def plot_isochrone_grid(iso_files, ax_by='age'):
     axs[0].set_ylim(0.6, 2.2)
     axs[0].set_xlim(4.02, 3.65)
     axs[0].set_ylabel(r'$\log L\ (L_\odot)$', fontsize=20)
+
+
+def main(argv):
+    parser = argparse.ArgumentParser(description="Plot CMD")
+
+    parser.add_argument('-o', '--outfile', type=str, default=None,
+                        help='output image to write to')
+
+    parser.add_argument('-y', '--yfilter', type=str, default='I',
+                        help='V or I to plot on yaxis')
+
+    parser.add_argument('-x', '--xyfile', type=str, default=None,
+                        help='xyfile to plot')
+
+    parser.add_argument('-f', '--filters', type=str, default=None,
+                        help='comma separated filter list.')
+
+    parser.add_argument('-s', '--scatter', action='store_true',
+                        help='make a scatter contour plot')
+
+    parser.add_argument('observation', type=str, nargs='*',
+                        help='data file to make CMD')
+
+
+    args = parser.parse_args(argv)
+    for obs in args.observation:
+        if args.filters is not None:
+            filter1, filter2 = args.filters.split(',')
+        else:
+            target, (filter1, filter2) = rsp.asts.parse_pipeline(obs)
+
+        outfile = args.outfile or obs + '.png'
+
+        fig, axs = cmd(obs, filter1, filter2, inset=False,
+                       scatter=args.scatter, xyfile=args.xyfile)
+
+        plt.savefig(outfile)
+        print 'wrote {}'.format(outfile)
+        plt.close()
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
