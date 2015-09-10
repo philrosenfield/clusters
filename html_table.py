@@ -33,12 +33,7 @@ def write_script(args):
     Write a script to tar and scp files to a server.
     """
     imgs = ' '.join(args.images)
-    if not args.webbase.endswith('/'):
-        args.webbase += '/'
-
-    line = 'tar -cvf imgs.tar {} {}\n'.format(args.outfile, imgs)
-    line += 'gzip imgs.tar\n'
-    line += 'scp imgs.tar.gz {}:{}.\n'.format(args.serverbase, args.webbase)
+    line = 'tar -cvf imgs.tar {} {}\ngzip imgs.tar\n'.format(args.outfile, imgs)
     script = args.outfile + '.sh'
     with open(script, 'w') as outp:
         outp.write(line)
@@ -56,23 +51,15 @@ def main(argv):
     parser.add_argument('-f', '--clobber', action='store_true',
                         help='write a new file if one exists (append by default)')
 
-    parser.add_argument('-z', '--server', default='philipro@portal.astro.washington.edu',
-                        help='if -s, push to this user@server')
+    parser.add_argument('-p', '--path', default='mc_legacy/', help='path from webbase')
 
-    parser.add_argument('-b', '--serverbase', default='/www/astro/users/philipro/html/',
-                        help='if -s, push to this path user@server:serverpath/.')
-
-    parser.add_argument('-p', '--path', default='mc_legacy/', help='path from serverbase and webbase')
-
-    parser.add_argument('-w', '--webbase', type=str, default='http://www.astro.washington.edu/users/philipro/',
+    parser.add_argument('-w', '--webbase', type=str, default='https://www.cfa.harvard.edu/~prosenfi/',
                         help='image http address')
 
     parser.add_argument('images', type=str, nargs='*',
                         help='image(s) to put into html')
 
     args = parser.parse_args(argv)
-
-    args.serverbase = os.path.join(args.serverbase, args.path)
     args.webbase = os.path.join(args.webbase, args.path)
 
     # not really an append...
