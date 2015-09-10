@@ -18,6 +18,7 @@ def one_col(imgpath, webpath, defaults={}):
     create a string that has the imgpath as title and links to the image
     on the webpath.
     '''
+    d = {}
     fmt = '<h3>{imgname}</h3>\n<p><a href=\'{imgloc}\'><img height=\'{imgh}\' src=\'{imgloc}\' width=\'{imgw}\' alt=\'{imgname}\'></a></p>\n'
     d['imgname'] = os.path.split(imgpath)[1]
     d['imgloc'] = os.path.join(webpath, d['imgname'])
@@ -32,12 +33,12 @@ def write_script(args):
     Write a script to tar and scp files to a server.
     """
     imgs = ' '.join(args.images)
-    if not args.webpath.endswith('/'):
-        args.webpath += '/'
+    if not args.webbase.endswith('/'):
+        args.webbase += '/'
 
     line = 'tar -cvf imgs.tar {} {}\n'.format(args.outfile, imgs)
     line += 'gzip imgs.tar\n'
-    line += 'scp imgs.tar.gz {}:{}.\n'.format(args.server, args.webpath)
+    line += 'scp imgs.tar.gz {}:{}.\n'.format(args.serverbase, args.webbase)
     script = args.outfile + '.sh'
     with open(script, 'w') as outp:
         outp.write(line)
@@ -55,13 +56,15 @@ def main(argv):
     parser.add_argument('-f', '--clobber', action='store_true',
                         help='write a new file if one exists (append by default)')
 
-    parser.add_argument('-a', '--server', default='philipro@portal.astro.washington.edu',
+    parser.add_argument('-z', '--server', default='philipro@portal.astro.washington.edu',
                         help='if -s, push to this user@server')
 
-    parser.add_argument('-a', '--serverpath', default='/www/astro/users/philipro/html/mc_legacy/',
+    parser.add_argument('-b', '--serverbase', default='/www/astro/users/philipro/html/',
                         help='if -s, push to this path user@server:serverpath/.')
 
-    parser.add_argument('-w', '--webpath', type=str, default='http://www.astro.washington.edu/users/philipro/mc_legacy/',
+    parser.add_argument('-p', '--path', default='mc_legacy/', help='path from serverbase and webbase')
+
+    parser.add_argument('-w', '--webbase', type=str, default='http://www.astro.washington.edu/users/philipro/',
                         help='image http address')
 
     parser.add_argument('images', type=str, nargs='*',
@@ -69,15 +72,22 @@ def main(argv):
 
     args = parser.parse_args(argv)
 
-    wflag = 'a'
-    if args.clobber:
-        wflag = 'w'
+    args.serverbase = os.path.join(args.serverbase, args.path)
+    args.webbase = os.path.join(args.webbase, args.path)
 
-    line = header.format(args.outfile.split('.')[0])
-    line += ''.join([one_col(img, args.webpath) for img in args.images])
+    # not really an append...
+    if args.clobber or not os.path.isfile(args.outfile):
+        # write the header if this will be a new file
+        line = header.format(args.outfile.split('.')[0])
+    else:
+        # erase the footer ... could be more general.
+        with open(args.outfile, 'r') as inp:
+            line = ''.join(inp.readlines()[:-2])
+
+    line += ''.join([one_col(img, args.webbase) for img in args.images])
     line += footer
 
-    with open(args.outfile, wflag) as outp:
+    with open(args.outfile, 'w') as outp:
         outp.write(line)
     print('wrote to {}'.format(args.outfile))
 

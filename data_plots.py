@@ -6,6 +6,14 @@ import matplotlib
 import matplotlib.pylab as plt
 import numpy as np
 import sys
+import os
+
+
+def replace_all(text, dic):
+    """perfrom text.replace(key, value) for all keys and values in dic"""
+    for old, new in dic.iteritems():
+        text = text.replace(old, new)
+    return text
 
 def _plot_cmd(color, mag, color_err=None, mag_err=None, inds=None, ax=None,
               scatter=False):
@@ -18,7 +26,7 @@ def _plot_cmd(color, mag, color_err=None, mag_err=None, inds=None, ax=None,
     if not scatter:
         ax.plot(color[inds], mag[inds], '.', color='black', ms=3)
         if not None in [color_err, mag_err]:
-            ax.errorbar(color[inds], mag[inds], fmt=None, xerr=color_err[inds],
+            ax.errorbar(color[inds], mag[inds], fmt='none', xerr=color_err[inds],
                         yerr=mag_err[inds], capsize=0, ecolor='gray')
     else:
         if not None in [color_err, mag_err]:
@@ -33,13 +41,6 @@ def _plot_cmd(color, mag, color_err=None, mag_err=None, inds=None, ax=None,
                                               ax=ax, xerr=color_err,
                                               yerr=mag_err)
     return ax
-
-
-def _plot_xy(x, y, radii=[100, 500, 1000]):
-    hx, bx = np.histogram(x, bins=500)
-    hy, by = np.histogram(y, bins=500)
-    ix = np.argmax(hx)
-    iy = np.argmax(hy)
 
 
 def add_inset(ax0, extent, xlims, ylims):
@@ -66,16 +67,22 @@ def cmd(filename, filter1, filter2, inset=False, scatter=False,
         x = np.array([])
         y = np.array([])
 
-    try:
-        gal.data = fits.getdata(filename)
-        mag = gal.data['{}_{}'.format(filter2, fextra)]
-        mag1 = gal.data['{}_{}'.format(filter1, fextra)]
-        color = mag1 - mag
-        mag_err = gal.data['%s_ERR' % filter2]
-        color_err = np.sqrt(gal.data['%s_ERR' % filter1] ** 2 + mag_err ** 2)
-        x = gal.data.X
-        y = gal.data.Y
-    except:
+    if filename.endswith('fits'):
+        try:
+            gal.data = fits.getdata(filename)
+            keyfmt = '{}_{}'
+            errfmt = '{}_ERR'
+            mag = gal.data[keyfmt.format(filter2, fextra)]
+            mag1 = gal.data[keyfmt.format(filter1, fextra)]
+            color = mag1 - mag
+            mag_err = gal.data[errfmt.format(filter2)]
+            color_err = np.sqrt(gal.data[errfmt.format(filter1)] ** 2 + mag_err ** 2)
+            x = gal.data.X
+            y = gal.data.Y
+        except ValueError, e:
+            print('Problem with {}: {}'.format(filename, e))
+            return None, None
+    else:
         mag1, mag2 = np.genfromtxt(filename, unpack=True)
         color = mag1 - mag2
         mag = mag2
@@ -92,10 +99,8 @@ def cmd(filename, filter1, filter2, inset=False, scatter=False,
                    ax=ax, scatter=scatter)
 
     plt.tick_params(labelsize=18)
-    #ax.set_ylabel(r'$%s\ %s$' % (filt2, fextra), fontsize=24)
-    #ax.set_xlabel(r'$%s-%s\ %s$' % (filt1, filt2, fextra), fontsize=24)
-    ax.set_ylabel(r'$%s$' % filter2, fontsize=24)
-    ax.set_xlabel(r'$%s-%s$' % (filter1, filter2), fontsize=24)
+    ax.set_ylabel(r'${}$'.format(filter2), fontsize=24)
+    ax.set_xlabel(r'${}-{}$'.format(filter1, filter2), fontsize=24)
     ax.set_ylim(26., 14)
     ax.set_xlim(-0.5, 4)
 
@@ -199,39 +204,68 @@ def main(argv):
     parser = argparse.ArgumentParser(description="Plot CMD")
 
     parser.add_argument('-o', '--outfile', type=str, default=None,
-                        help='output image to write to')
+                        help='output image to write to ([obs].png)')
 
     parser.add_argument('-y', '--yfilter', type=str, default='I',
-                        help='V or I to plot on yaxis')
+                        help='V or I to plot on yaxis (I)')
 
     parser.add_argument('-x', '--xyfile', type=str, default=None,
-                        help='xyfile to plot')
+                        help='xyfile to plot (read in obs)')
 
     parser.add_argument('-f', '--filters', type=str, default=None,
-                        help='comma separated filter list.')
+                        help='comma separated filter list. (read from obs filename)')
 
     parser.add_argument('-s', '--scatter', action='store_true',
                         help='make a scatter contour plot')
 
-    parser.add_argument('observation', type=str, nargs='*',
+    parser.add_argument('-c', '--clobber', action='store_true',
+                        help='overwrite outfile if exists')
+
+    parser.add_argument('obs', type=str, nargs='*',
                         help='data file to make CMD')
 
 
     args = parser.parse_args(argv)
-    for obs in args.observation:
+    for obs in args.obs:
         if args.filters is not None:
-            filter1, filter2 = args.filters.split(',')
+            filters = args.filters.split(',')
         else:
-            target, (filter1, filter2) = rsp.asts.parse_pipeline(obs)
+            _, filters = rsp.asts.parse_pipeline(obs)
+        if len(filters) == 1:
+            print('Error only one filter {}.'.format(obs))
+            continue
 
-        outfile = args.outfile or obs + '.png'
+        filter2 = filters.pop(-1)
 
-        fig, axs = cmd(obs, filter1, filter2, inset=False,
-                       scatter=args.scatter, xyfile=args.xyfile)
+        for filter1 in filters:
+            # either a supplied outputfile, the obs name + .png
+            # or if there are more than 2 filters, the two plotted .png
+            outfile = args.outfile
+            if outfile is None:
+                outfile = obs + '.png'
+                if len(filters) > 1:
+                    # take out the filters not being plotted
+                    try:
+                        notfs = [f for f in filters if filter1 not in f]
+                        outfile = replace_all(obs + '.png',
+                                              dict(zip(notfs, ['']*len(notfs))))
+                        # ^ leaves _-F336W-F814W or F110W----F814W so:
+                        uch = {'--': '-'}
+                        outfile = replace_all(replace_all(outfile, uch),
+                                              uch).replace('_-', '_')
+                    except ValueError, e:
+                        print('{}: {}'.format(e, filters))
+                        return
+            if os.path.isfile(outfile) and not args.clobber:
+                print('not overwriting {}'.format(outfile))
+                continue
 
-        plt.savefig(outfile)
-        print 'wrote {}'.format(outfile)
-        plt.close()
+            fig, axs = cmd(obs, filter1, filter2, inset=False,
+                           scatter=args.scatter, xyfile=args.xyfile)
+            if axs is not None:
+                plt.savefig(outfile)
+                print 'wrote {}'.format(outfile)
+                plt.close()
 
 if __name__ == '__main__':
     main(sys.argv[1:])
