@@ -27,6 +27,14 @@ def one_col(imgpath, webpath, defaults={}):
     d = dict(d.items() + defaults.items())
     return fmt.format(**d)
 
+def bokeh_toc(webbase, htmlfile):
+    d = {}
+    fmt = '<a href="{webbase}{htmlfile}">{title}</a><br>\n'
+    d['webbase'] = webbase
+    d['htmlfile'] = htmlfile
+    d['title'] = htmlfile.replace('.html', '')
+    return fmt.format(**d)
+
 
 def write_script(args):
     """
@@ -45,6 +53,9 @@ def main(argv):
     parser.add_argument('-o', '--outfile', type=str, default='imgs.html',
                         help='output html to write to')
 
+    parser.add_argument('-b', '--bokeh', action='store_true',
+                        help='write a bokeh table of contents')
+
     parser.add_argument('-s', '--script', action='store_true',
                         help='write a push to server script')
 
@@ -57,7 +68,7 @@ def main(argv):
                         help='image http address')
 
     parser.add_argument('images', type=str, nargs='*',
-                        help='image(s) to put into html')
+                        help='image(s) to put into html or html files to make bokeh table of contents')
 
     args = parser.parse_args(argv)
     args.webbase = os.path.join(args.webbase, args.path)
@@ -71,7 +82,10 @@ def main(argv):
         with open(args.outfile, 'r') as inp:
             line = ''.join(inp.readlines()[:-2])
 
-    line += ''.join([one_col(img, args.webbase) for img in args.images])
+    if args.bokeh:
+        line += ''.join([bokeh_toc(args.webbase, img) for img in args.images])
+    else:
+        line += ''.join([one_col(img, args.webbase) for img in args.images])
     line += footer
 
     with open(args.outfile, 'w') as outp:

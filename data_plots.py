@@ -8,6 +8,52 @@ import numpy as np
 import sys
 import os
 
+from bokeh.plotting import ColumnDataSource, figure, gridplot, output_file, show
+from bokeh.embed import file_html, components
+from bokeh.resources import CDN
+from bokeh.models import Range1d
+from pandas import *
+
+
+def bplot_cmd_xy(obs, filter1, filter2, xyfile=None):
+    color, mag, _, _, good, x, y = load_obs(obs, filter1, filter2,
+                                            xyfile=xyfile)
+
+    pid, target = os.path.split(obs)[1].split('_')[:2]
+    title = '{} {}'.format(pid, target)
+    xlabel = '{}-{}'.format(filter1, filter2)
+    ylabel = '{}'.format(filter2)
+    outfile = os.path.split(obs)[1] + '.html'
+
+    data = np.column_stack((color[good], mag[good], x[good], y[good]))
+
+    df = DataFrame(data, columns=['color', 'mag2', 'x', 'y'])
+    source  = ColumnDataSource(df)
+
+    TOOLS = "pan,wheel_zoom,box_zoom,box_select,lasso_select,reset,save"
+    plot_config = dict(plot_width=500, plot_height=500, tools=TOOLS)
+    cs = ['#8C3B49', '#212053']
+
+    p1 = figure(title=title, **plot_config)
+    p1.circle("color", "mag2", size=1, source=source, color=cs[0])
+    p1.y_range = Range1d(26, 14)
+    p1.yaxis.axis_label = ylabel
+    p1.xaxis.axis_label = xlabel
+
+    p2 = figure(**plot_config)
+    p2.circle(data[:, 2], data[:, 3], size=1, source=source, color=cs[1])
+    p2.yaxis.axis_label = "Y"
+    p2.xaxis.axis_label = "X"
+
+    p = gridplot([[p1, p2]])
+
+    html = file_html(p, CDN, title)
+
+    with open(outfile, 'w') as f:
+        f.write(html)
+    print('wrote {}'.format(outfile))
+    #script, div = components(p)
+
 
 def replace_all(text, dic):
     """perfrom text.replace(key, value) for all keys and values in dic"""
@@ -55,11 +101,7 @@ def add_inset(ax0, extent, xlims, ylims):
     return ax
 
 
-def cmd(filename, filter1, filter2, inset=False, scatter=False,
-        xyfile=None, fextra='VEGA'):
-    '''
-    plot cmd of data, two insets are hard coded.
-    '''
+def load_obs(filename, filter1, filter2, xyfile=None, fextra='VEGA'):
     gal = rsp.StarPop()
     if xyfile is not None:
         _, _, x, y = np.loadtxt(xyfile, unpack=True)
@@ -90,10 +132,20 @@ def cmd(filename, filter1, filter2, inset=False, scatter=False,
         color_err = None
 
     good, = np.nonzero((np.abs(color) < 30) & (np.abs(mag) < 30))
+    return color, mag, color_err, mag_err, good, x, y
+
+def cmd(obs, filter1, filter2, inset=False, scatter=False,
+        xyfile=None):
+    '''
+    plot cmd of data, two insets are hard coded.
+    '''
     if len(x) == 0:
         fig, ax = plt.subplots(figsize=(12, 12))
     else:
         fig, (ax, axxy) = plt.subplots(ncols=2, figsize=(16, 8))
+
+    color, mag, color_err, mag_err, good, x, y = load_obs(obs, filter1,
+                                                          filter2, xyfile=xyfile)
 
     ax = _plot_cmd(color, mag, color_err=color_err, mag_err=mag_err, inds=good,
                    ax=ax, scatter=scatter)
@@ -206,6 +258,12 @@ def main(argv):
     parser.add_argument('-o', '--outfile', type=str, default=None,
                         help='output image to write to ([obs].png)')
 
+    parser.add_argument('-b', '--bokeh',  action='store_true',
+                        help='make bokeh tables')
+
+    parser.add_argument('-p', '--png',  action='store_true',
+                        help='make pngs')
+
     parser.add_argument('-y', '--yfilter', type=str, default='I',
                         help='V or I to plot on yaxis (I)')
 
@@ -256,16 +314,21 @@ def main(argv):
                     except ValueError, e:
                         print('{}: {}'.format(e, filters))
                         return
-            if os.path.isfile(outfile) and not args.clobber:
-                print('not overwriting {}'.format(outfile))
-                continue
 
-            fig, axs = cmd(obs, filter1, filter2, inset=False,
-                           scatter=args.scatter, xyfile=args.xyfile)
-            if axs is not None:
-                plt.savefig(outfile)
-                print 'wrote {}'.format(outfile)
-                plt.close()
+            if args.bokeh:
+                bplot_cmd_xy(obs, filter1, filter2)
+
+            if args.png:
+                if os.path.isfile(outfile) and not args.clobber:
+                    print('not overwriting {}'.format(outfile))
+                    continue
+
+                fig, axs = cmd(obs, filter1, filter2, inset=False,
+                               scatter=args.scatter, xyfile=args.xyfile)
+                if axs is not None:
+                    plt.savefig(outfile)
+                    print 'wrote {}'.format(outfile)
+                    plt.close()
 
 if __name__ == '__main__':
     main(sys.argv[1:])
