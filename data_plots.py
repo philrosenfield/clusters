@@ -79,13 +79,10 @@ def _plot_cmd(color, mag, color_err=None, mag_err=None, inds=None, ax=None,
             color_err = color_err[inds]
             mag_err = mag_err[inds]
         ax = rsp.graphics.plotting.scatter_contour(color[inds], mag[inds],
-                                              levels=5, bins=200, threshold=400,
-                                              log_counts=False, histogram2d_args={},
-                                              plot_args={'edgecolors': 'none', 'color': 'k',
-                                                         'marker': 'o', 's': 3},
-                                              contour_args={},
-                                              ax=ax, xerr=color_err,
-                                              yerr=mag_err)
+                levels=5, bins=200, threshold=400, log_counts=False,
+                plot_args={'edgecolors': 'none', 'color': 'k',
+                           'marker': 'o', 's': 3}, ax=ax, xerr=color_err,
+                yerr=mag_err)
     return ax
 
 
