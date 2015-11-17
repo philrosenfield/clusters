@@ -457,7 +457,7 @@ WFC3 UVIS 13476 AGNC-S1188 17.762500 -72.343389 nan nan "Kallivayalil" 354.0 201
 WFC3 UVIS 13476 AGNC-S1188 17.762500 -72.343389 nan nan "Kallivayalil" 354.0 2014-01-07 smc_fields/WFC3/13476_AGNC-S1188/icc220i3q_raw.fits
 WFC3 UVIS 13476 AGNC-S1188 17.762500 -72.343389 nan nan "Kallivayalil" 354.0 2014-01-07 smc_fields/WFC3/13476_AGNC-S1188/icc220i6q_flt.fits
 WFC3 UVIS 13476 AGNC-S1188 17.762500 -72.343389 nan nan "Kallivayalil" 354.0 2014-01-07 smc_fields/WFC3/13476_AGNC-S1188/icc220i6q_raw.fits
- instrument detector propid target ra dec filter1 filter2 pr_inv exptime date-obs file 
+# instrument detector propid target ra dec filter1 filter2 pr_inv exptime date-obs file
 ACS WFC 12116 ANY 75.914292 -66.354701 F475W CLEAR2L "Dalcanton" 1.0 2013-03-13 lmc_fields/ACS/12116_ANY/jbxg01o3q_flc.fits
 ACS WFC 12116 ANY 75.914292 -66.354701 F475W CLEAR2L "Dalcanton" 1.0 2013-03-13 lmc_fields/ACS/12116_ANY/jbxg01o3q_flt.fits
 ACS WFC 12116 ANY 75.914292 -66.354701 F475W CLEAR2L "Dalcanton" 670.0 2013-03-13 lmc_fields/ACS/12116_ANY/jbxg01o7q_flc.fits
@@ -1192,7 +1192,7 @@ WFC3 UVIS 13435 NGC-1898 79.171833 -69.656778 nan nan "Monelli" 200.0 2014-01-10
 WFC3 UVIS 13435 NGC-1898 79.171833 -69.656778 nan nan "Monelli" 200.0 2014-01-10 lmc_fields/WFC3/13435_NGC-1898/icb005haq_flt.fits
 WFC3 UVIS 13435 NGC-1898 79.171833 -69.656778 nan nan "Monelli" 200.0 2014-01-10 lmc_fields/WFC3/13435_NGC-1898/icb005haq_rac.fits
 WFC3 UVIS 13435 NGC-1898 79.171833 -69.656778 nan nan "Monelli" 200.0 2014-01-10 lmc_fields/WFC3/13435_NGC-1898/icb005haq_raw.fits
- instrument detector propid target ra dec filter1 filter2 pr_inv exptime date-obs file 
+# instrument detector propid target ra dec filter1 filter2 pr_inv exptime date-obs file
 ACS WFC 10126 NGC-265 11.796250 -73.477806 CLEAR1L F435W "Olszewski" 440.0 2004-11-08 clusters/ACS/10126_NGC-265/j90601a7q_flc.fits
 ACS WFC 10126 NGC-265 11.796250 -73.477806 CLEAR1L F435W "Olszewski" 440.0 2004-11-08 clusters/ACS/10126_NGC-265/j90601a7q_flt.fits
 ACS WFC 10126 NGC-265 11.796250 -73.477806 F555W CLEAR2L "Olszewski" 440.0 2004-11-08 clusters/ACS/10126_NGC-265/j90601a8q_flc.fits
@@ -3061,7 +3061,7 @@ WFC3 UVIS 13009 LOW-NGC376 16.019180 -72.831000 nan nan "De Marchi" 982.0 2013-0
 WFC3 UVIS 13009 LOW-NGC376 16.019180 -72.831000 nan nan "De Marchi" 982.0 2013-08-01 clusters/WFC3/13009_LOW-NGC376/ibyy91aoq_flt.fits
 WFC3 UVIS 13009 LOW-NGC376 16.019180 -72.831000 nan nan "De Marchi" 982.0 2013-08-01 clusters/WFC3/13009_LOW-NGC376/ibyy91aoq_rac.fits
 WFC3 UVIS 13009 LOW-NGC376 16.019180 -72.831000 nan nan "De Marchi" 982.0 2013-08-01 clusters/WFC3/13009_LOW-NGC376/ibyy91aoq_raw.fits
- instrument detector propid target ra dec filter1 filter2 pr_inv exptime date-obs file 
+# instrument detector propid target ra dec filter1 filter2 pr_inv exptime date-obs file
 ACS WFC 10566 STAR-CLUS-053707-662203 84.277083 -66.367639 F555W CLEAR2L "Gouliermis" 25.0 2006-03-02 added/lmc/ACS/10566_STAR-CLUS-053707-662203/j9aa01msq_flc.fits
 ACS WFC 10566 STAR-CLUS-053707-662203 84.277083 -66.367639 F555W CLEAR2L "Gouliermis" 25.0 2006-03-02 added/lmc/ACS/10566_STAR-CLUS-053707-662203/j9aa01msq_flt.fits
 ACS WFC 10566 STAR-CLUS-053707-662203 84.277083 -66.367639 F555W CLEAR2L "Gouliermis" 25.0 2006-03-02 added/lmc/ACS/10566_STAR-CLUS-053707-662203/j9aa01msq_raw.fits
@@ -3192,7 +3192,7 @@ WFC3 UVIS 13435 NGC-1786 74.782500 -67.745278 nan nan "Monelli" 1015.0 2014-06-1
 WFC3 UVIS 13435 NGC-1786 74.782500 -67.745278 nan nan "Monelli" 200.0 2014-06-13 added/lmc/WFC3/13435_NGC-1786/icb004l9q_flt.fits
 WFC3 UVIS 13435 NGC-1786 74.782500 -67.745278 nan nan "Monelli" 200.0 2014-06-13 added/lmc/WFC3/13435_NGC-1786/icb004l9q_raw.fits
 #added/lmc/WFC3/13435_NGC-1786/icb004l9q_spt.fits
- instrument detector propid target ra dec filter1 filter2 pr_inv exptime date-obs file 
+# instrument detector propid target ra dec filter1 filter2 pr_inv exptime date-obs file
 ACS WFC 10126 K-29 12.971667 -72.954028 CLEAR1L F435W "Olszewski" 440.0 2004-09-02 added/smc/ACS/10126_K-29/j90605qyq_flc.fits
 ACS WFC 10126 K-29 12.971667 -72.954028 CLEAR1L F435W "Olszewski" 440.0 2004-09-02 added/smc/ACS/10126_K-29/j90605qyq_flt.fits
 ACS WFC 10126 K-29 12.971667 -72.954028 CLEAR1L F435W "Olszewski" 440.0 2004-09-02 added/smc/ACS/10126_K-29/j90605qyq_raw.fits

@@ -13,7 +13,7 @@ def replace_all(text, dic):
     return text
 
 
-def read_hlacsv(filename, maxlength=1200):
+def read_hlacsv(filename, maxlength=1200, raunit='decimal'):
     """
     Read csv output from MAST discovery portal.
     First line is column format
@@ -26,25 +26,31 @@ def read_hlacsv(filename, maxlength=1200):
     inp = open(filename, 'r')
     lines = inp.readlines()
 
-    idx, comlines = zip(*[(i, l) for (i, l) in enumerate(lines)
+    idx, comlines = zip(*[(i, l.strip()) for (i, l) in enumerate(lines)
         if l.startswith('#')])
     colfmtline, = [l for l in comlines if l.startswith('#@')]
     colfmts = colfmtline.translate(None, '#@ ').strip()
     ihead = idx[-1]+1
     colnames = lines[ihead].split(',')
-
+    converters=None
     if 'obs_title' in colnames:
         print('WARNING Observation Title is in catalog. '
               'There could be commas in the field which will break the data reader')
+        converters = {9: lambda s: s.replace("'", "&#8217;")}
     repd = {'ra': 'float', 'dec': 'float', 'string': '|S{}'.format(maxlength),
             'float': '<f8', 'int': '<f8'}
+
+    if raunit != 'decimal':
+        repd['ra'] = '|S{}'.format(maxlength)
+        repd['dec'] = '|S{}'.format(maxlength)
+
     fmts = replace_all(colfmts, repd).split(',')
 
     dtype = [(c, f) for c, f in zip(colnames, fmts)]
     # the converter is for proposal last name, errors occur with O'Connell etc
     # could sub in the
     data = np.genfromtxt(filename, dtype=dtype, delimiter=',', skip_header=ihead + 1,
-                         converters={9: lambda s: s.replace("'", "&#8217;")})
+                         converters=converters)
     return data
 
 
