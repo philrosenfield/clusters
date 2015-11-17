@@ -1,0 +1,3 @@
+acs_baum_mast_crossmatch.csv = baumgardt13_data cross matched with bigtable.csv cut for only acs/wfc
+wfpc2_baum_mast_crossmatch.csv = baumgardt13_data cross matched with bigtable.csv cut for only wfpc2
+acs_baum_mast_crossmatch_MISSING.csv ACS data missed on first download, need to download them.
