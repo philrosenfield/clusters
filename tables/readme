@@ -1,3 +1,7 @@
-acs_baum_mast_crossmatch.csv = baumgardt13_data cross matched with bigtable.csv cut for only acs/wfc
-wfpc2_baum_mast_crossmatch.csv = baumgardt13_data cross matched with bigtable.csv cut for only wfpc2
-acs_baum_mast_crossmatch_MISSING.csv ACS data missed on first download, need to download them.
+added.csv          WFC3 and ACS observations phil missed in his first download 
+clusters.csv       downloaded clusters
+clusters_flt.csv   culled to only have flt or c0m lines from clusters
+lmc_fields.csv     downloaded lmc fields
+lmc_fields_flt.csv culled to only have flt or c0m lines from lmc_fields
+smc_fields.csv     downloaded smc fields
+smc_fields_flt.csv culled to only have flt or c0m lines from smc_fields

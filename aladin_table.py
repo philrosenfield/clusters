@@ -3,6 +3,7 @@ from palettable.colorbrewer import qualitative
 import numpy as np
 import sys
 
+from astropy.table import Table
 import string
 allTheLetters = string.lowercase
 
@@ -18,40 +19,8 @@ def read_hlacsv(filename, maxlength=1200, raunit='decimal'):
     Read csv output from MAST discovery portal.
     First line is column format
     Second line is column names
-
-    NOTE: In experience the max length of the s_region column is 1064 chars
-    There is NO check to make sure this line is not tuncated
-    (currently assumed max is 1200 chars)
     """
-    inp = open(filename, 'r')
-    lines = inp.readlines()
-
-    idx, comlines = zip(*[(i, l.strip()) for (i, l) in enumerate(lines)
-        if l.startswith('#')])
-    colfmtline, = [l for l in comlines if l.startswith('#@')]
-    colfmts = colfmtline.translate(None, '#@ ').strip()
-    ihead = idx[-1]+1
-    colnames = lines[ihead].split(',')
-    converters=None
-    if 'obs_title' in colnames:
-        print('WARNING Observation Title is in catalog. '
-              'There could be commas in the field which will break the data reader')
-        converters = {9: lambda s: s.replace("'", "&#8217;")}
-    repd = {'ra': 'float', 'dec': 'float', 'string': '|S{}'.format(maxlength),
-            'float': '<f8', 'int': '<f8'}
-
-    if raunit != 'decimal':
-        repd['ra'] = '|S{}'.format(maxlength)
-        repd['dec'] = '|S{}'.format(maxlength)
-
-    fmts = replace_all(colfmts, repd).split(',')
-
-    dtype = [(c, f) for c, f in zip(colnames, fmts)]
-    # the converter is for proposal last name, errors occur with O'Connell etc
-    # could sub in the
-    data = np.genfromtxt(filename, dtype=dtype, delimiter=',', skip_header=ihead + 1,
-                         converters=converters)
-    return data
+    return Table.read(filename, header_start=1)
 
 
 def polygon_line(name, polygon_array, color='#ee2345', lw=3):
@@ -77,7 +46,6 @@ def polygon_line(name, polygon_array, color='#ee2345', lw=3):
                 coords = grab_coors(line.split())
                 poly_str.append('A.polygon([{}])'.format(coords))
         else:
-            #import pdb; pdb.set_trace()
             coords = grab_coors(poly_line[0].split())
             poly_str.append('A.polygon([{}])'.format(coords))
 
@@ -87,7 +55,7 @@ def polygon_line(name, polygon_array, color='#ee2345', lw=3):
 
 def catalog_line(name, data, ms=10, color='red'):
     """
-    Add  markers and popup
+    Add markers and popup
     """
     head = ("var {0} = A.catalog({{name: '{0}', sourceSize: {1}, color: '{2}'}});\n"
                 "aladin.addCatalog({0});\n".format(name, ms, color))
@@ -98,13 +66,13 @@ def catalog_line(name, data, ms=10, color='red'):
                "<em>Filters:</em> %(filters)s <br/>"
                "<em>PI:</em> %(proposal_pi)s <em>PID:</em> %(proposal_id)s <br/>"
                "<em>Exp time:</em> %(t_exptime)i <br/>"
-               "<br/><a href=\"%(jpegURL)s\" target=\"_blank\">jpeg preview</a>'})")
+               "<br/><a href=\"%(jpegURL)s\" target=\"_blank\"><img src=\"%(jpegURL)s\" alt=\"%(target_name)s jpeg preview\"></a>'})")
     catalog = ', '.join([fmt % d for d in data])
     cat_line = "{0}.addSources([{1}]);\n".format(name, catalog)
     return ''.join((head, cat_line))
 
 
-
+# target ra dec is set to near the to view both the LMC and SMC
 header = \
 """
 <html>
