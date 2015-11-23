@@ -1,7 +1,7 @@
 #!/astro/apps6/anaconda2.0/bin/python
 """
-make a script to move all fits files in current directory to directory structure
-based on its header:
+move all fits files in current directory to directory structure based on fits
+header:
 ./[INSTRUME]/[PROPOSID]_[TARGNAME]/
 
 (will make the directories if they do not exist.)
@@ -12,14 +12,24 @@ import os
 import sys
 
 from astropy.io import fits
+import numpy as np
+
+def good_ext(fnames):
+    exts = ['drz', 'flt', 'flc', 'c0m', 'c1m']
+    f = np.concatenate([[f for f in fnames if ext in f] for ext in exts])
+    return f[0]
 
 def main(argv):
-    parser = argparse.ArgumentParser(description="Move fits files to directory structure based on fits header INSTRUME/PROPOSID_TARGNAME")
-    parser.add_argument("-o", "--outfile", type=str, default='organaize.sh',
-                        help="script name to write to")
+    parser = argparse.ArgumentParser(description="Move fits files to directory structure based on fits header I
+NSTRUME/PROPOSID_TARGNAME")
+    parser.add_argument("-o", "--outfile", type=str, default='organize.sh',
+	                help="script to write to")
 
     args = parser.parse_args(argv)
     create_dirstruct(outfile=args.outfile)
+
+def same_targ(fits):
+    return np.unique([f.split('_')[0] for f in fits], return_index=True)
 
 def create_dirstruct(outfile=None):
     line = ''
@@ -27,33 +37,37 @@ def create_dirstruct(outfile=None):
     if len(fitslist) == 0:
         line += 'nothing to do.\n'
     else:
-        for fit in fitslist:
+        import pdb; pdb.set_trace()
+	fnames, inds = same_targ(fitslist)
+	print('{} fits files'.format(len(fitslist)))
+        for i in range(len(fnames)):
+            if i+1 % 100 == 0:
+                print('{} of {}'.format(i+1, len(fnames)))
             try:
-                hdu = fits.open(fit)
+                fit = good_ext(fitslist[inds[i]:inds[i+1]])
+		hdu = fits.open(fit)
             except:
-                line += '# problem with %s\n' % fit)
+                line += '# problem with %s\n' % fit
                 pass
             header = hdu[0].header
             try:
-                newdir = '%i_%s' % (hdu[0].header['PROPOSID'], hdu[0].header['TARGNAME'])
-                newdir = os.path.join(header['INSTRUME'], newdir)
-            except:
-                line += 'error in header. skipping {}\n'.format(fit)
-                continue
-
+   	       newdir = '%i_%s' % (hdu[0].header['PROPOSID'], hdu[0].header['TARGNAME'])
+               newdir = os.path.join(header['INSTRUME'], newdir)
+	    except:
+               line += 'error in header. skipping {}\n'.format(fit)
+               continue
+            cmd = 'mv -i %s*fits %s\n' % (fnames[i], newdir)
             if not os.path.isdir(newdir):
-               line += 'mkdirs %s\n' % newdir
-            cmd = 'mv -i %s %s\n' % (fit, newdir)
+                os.makedirs('{}'.format(newdir))
+                print('made dir {}'.format(newdir))
             line += cmd
 
     if outfile is None:
         print(line)
     else:
-        with open(outfile, 'r') as out:
+	with open(outfile, 'w') as out:
             out.write(line)
 
 
 if __name__ == "__main__":
-
-
     main(sys.argv[1:])
