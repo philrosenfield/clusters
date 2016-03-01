@@ -14,6 +14,20 @@ import sys
 from astropy.io import fits
 import numpy as np
 
+def unique2d(a):
+    return np.array(list(set(tuple(i) for i in a.tolist())))
+
+def nearest_targets(cluster_table, field_table):
+    cradec = np.genfromtxt(cluster_table, usecols=(4,5))
+    fradec = np.genfromtxt(field_table, usecols=(4,5))
+    ucradec = unique2d(cradec)
+    ufradec = unique2d(fradec)
+    k = KDTree(ucradec)
+    dists, inds = k.query(ufradec)
+    for j, (d, i) in enumerate(zip(dists, inds)):
+        ax.plot(uradec[i,0], uradec[i,1], 'o')
+        ax.plot([uradec[i,0], ulradec[j, 0]] , [uradec[i,1], ulradec[j, 1]])
+    
 def good_ext(fnames):
     exts = ['drz', 'flt', 'flc', 'c0m', 'c1m']
     f = np.concatenate([[f for f in fnames if ext in f] for ext in exts])
