@@ -1,0 +1,27 @@
+There is some junk in this directory, saved because there is no simple way to redo the search and dl procedures.
+
+NOT JUNK:
+mast_fls_uniq.csv  As of 03/02/2016 these are the data sets downloaded matched with MAST tables.
+acs_dls.dat Missing ACS datasets submitted to DADS 03/02/2016
+wfc3_dls.dat WFC3 datasets to DL with new calibration from ST.
+
+Varying degrees of JUNK:
+
+Used to make acs_dls.dat and wfc3_dls.dat
+MAST_lmc_moremoremore.csv
+MAST_smc_moremoremore.csv
+
+Used to cross match with mast.csv, mast_fls_uniq.csv, mast_fls.csv (don't worry if its missing stuff, not all headers are read in make_table.py)
+all_dled.csv
+
+A huge file that combined make_table.py with MAST tables some time ago. Forgot how I did it.
+mast.csv
+
+A slightly culled version of mast.csv to only include files *fl{t,c}.fits
+mast_fls.csv
+
+Older tables made by make_table.py that I don't feel like removing right now.
+added_all.csv
+clusters_acs.csv
+lmc_fields_acs.csv
+smc_fields_acs.csv

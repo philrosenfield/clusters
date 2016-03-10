@@ -1,0 +1,1 @@
+grep -v -e NGC1751  -e NGC299 -e NGC376 -e NGC346 -e NGC121 -e NGC419 -e NGC1898 -e NGC1806 -e NGC1846 -e NGC1852 -e NGC2154 -e NGC1786 -e NGC1783 -e NGC1978 -e NGC1856 -e LH95 -e LMC-FIELD-NE-3 -e HS357-FIELD -e H86-126 final_full.csv >> singleband.csv

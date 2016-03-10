@@ -65,7 +65,7 @@ def make_table(filelist, outfile='table.dat', clobber=False, delimiter=' ', noda
             elif inst == 'ACS':
                 keys = acs_keys
             else:
-                print('WARNING: {} may not be supported'.format(inst))
+                #print('WARNING: {} may not be supported'.format(inst))
                 keys = acs_keys
 
             fmt_list = np.array(('%({0})s %({1})s %({2})s %({3})s %({4}).6f %({5}).6f '

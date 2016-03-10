@@ -1,12 +1,18 @@
 '''
 Plots for paper that use models primarily
 '''
-import ResolvedStellarPops as rsp
+import padova_tracks
+import dweisz.match.scripts as match
+from ResolvedStellarPops import fileio, graphics
 import numpy as np
 import matplotlib.pylab as plt
 import os
 
-td = rsp.padova_tracks.TrackDiag()
+td = padova_tracks.TrackDiag()
+#cov_strs = ['OV0.3', 'OV0.4', 'OV0.5', 'OV0.6', 'OV0.7']
+cov_strs = ['OV0.3', 'OV0.4', 'OV0.6']
+tracks_dir = '/Users/rosenfield/research/stel_evo/tracks/CAF09_MC_S15/tracks/'
+ptcri_loc = '/Users/rosenfield/research/stel_evo/tracks/CAF09_MC_S15/data/'
 
 def scrap():
     def input_output_plot(msfhs):
@@ -85,9 +91,6 @@ def plot_compare_at_eep(Z=0.004, comp='OV0.5', hb=False, eep_name='POINT_C',
     -------
     ax : matplotlib.axes object
     """
-    cov_strs = ['OV0.3', 'OV0.4', 'OV0.5', 'OV0.6', 'OV0.7']
-    tracks_dir = '/Users/phil/research/stel_evo/CAF09_D13/tracks/'
-    ptcri_loc = '/Users/phil/research/stel_evo/CAF09_D13/data/'
     if hb:
         mass_arr = np.arange(1., 1.8, 0.01)
     else:
@@ -97,11 +100,11 @@ def plot_compare_at_eep(Z=0.004, comp='OV0.5', hb=False, eep_name='POINT_C',
         tsearch += '.HB'
     ts_dict = {}
     for cov_str in cov_strs:
-        track_base, = rsp.fileio.get_dirs(tracks_dir,
+        track_base, = fileio.get_dirs(tracks_dir,
                                           criteria='%s_Z%g_' % (cov_str, Z))
-        track_names = rsp.fileio.get_files(track_base, tsearch)
-        ts = rsp.padova_tracks.TrackSet()
-        ts.tracks = [rsp.padova_tracks.Track(t, hb=hb) for t in track_names]
+        track_names = fileio.get_files(track_base, tsearch)
+        ts = padova_tracks.TrackSet()
+        ts.tracks = [padova_tracks.Track(t) for t in track_names]
         ts.relationships(eep_name, xattr, yattr, yfunc=yfunc, hb=hb,
                          sandro=sandro, ptcri_loc=ptcri_loc,
                          ptcri_search_extra=cov_str)
@@ -122,27 +125,27 @@ def plot_compare_at_eep(Z=0.004, comp='OV0.5', hb=False, eep_name='POINT_C',
 
     if lab_name is None:
         lab_name = eep_name.title()
-    ylab = r'$\tau_{%s, \Lambda_c = x} - \tau_{%s, \Lambda_c=0.5}\ (\rm{Myr})$' % (lab_name, lab_name)
+    cov = float(comp.replace('OV', ''))
+    ylab = r'$\tau_{%s, \Lambda_c = x} - \tau_{%s, \Lambda_c=%.1f}\ (\rm{Myr})$' % (lab_name, lab_name, cov)
     ax.set_ylabel(ylab, fontsize=20)
     ax.set_xlabel(r'$\rm{%s}\ M_\odot$' % xattr.title(), fontsize=20)
-    ax.set_xlim(0.9, 3.9)
-    ax.set_ylim(-200, 200)
+    #ax.set_xlim(0.9, 3.9)
+    #ax.set_ylim(-200, 200)
     ax.tick_params(labelsize=16)
     ax.legend(loc=0, frameon=False, fontsize=16)
+    outfig = 'comp_lambdac_z%g.png' % Z
+    plt.savefig(outfig)
     return ax
 
 
 def plot_compare_tracks(sandro=True, Z=0.004):
     # not sure if it's needed, but makes a pretty hrd.
-    cov_strs = ['OV0.3', 'OV0.4', 'OV0.5', 'OV0.6', 'OV0.7']
-    tracks_dir = '/Users/phil/research/stel_evo/CAF09_D13/tracks/'
-    ptcri_loc = '/Users/phil/research/stel_evo/CAF09_D13/data/'
 
     masses = [1.5, 2., 2.6, 4.]
     ts_dict = {}
     for cov_str in cov_strs:
-        ts = rsp.padova_tracks.TrackSet()
-        ts.tracks_base, = rsp.fileio.get_dirs(tracks_dir,
+        ts = padova_tracks.TrackSet()
+        ts.tracks_base, = fileio.get_dirs(tracks_dir,
                                               criteria='%s_Z%g_' % (cov_str, Z))
         ts.find_tracks(masses=masses)
         ts._load_ptcri(ptcri_loc, search_extra=cov_str, sandro=sandro)
@@ -173,8 +176,8 @@ def plot_compare_tracks(sandro=True, Z=0.004):
 
 
 def cov_cluster_grid_plots(ss='sfh', base='/Users/phil/research/clusters/n419/match'):
-    sfh_files = rsp.fileio.get_files(base, '*' + ss)
-    msfhs = [rsp.match.utils.MatchSFH(s) for s in sfh_files]
+    sfh_files = fileio.get_files(base, '*' + ss)
+    msfhs = [match.utils.MatchSFH(s) for s in sfh_files]
     nsfhs = len(msfhs)
     labs = [m.name.split('.')[0].replace('_', r'\ ') for m in msfhs]
     bestfits = [msfhs[i].bestfit for i in range(len(msfhs))]
@@ -201,12 +204,12 @@ def match_diagnostic_plots(base=os.getcwd(), sfh_str='*cov?.sfh', cmd_str='*cov?
                            labels='default'):
     from matplotlib.ticker import NullFormatter
 
-    cmd_files = rsp.fileio.get_files(base, cmd_str)
+    cmd_files = fileio.get_files(base, cmd_str)
     cmd_files = sorted(cmd_files, key=lambda x: x[-9])
-    sfh_files = rsp.fileio.get_files(base, sfh_str)
+    sfh_files = fileio.get_files(base, sfh_str)
     sfh_files = sorted(sfh_files, key=lambda x: x[-5])
 
-    msfhs = [rsp.match.utils.MatchSFH(s) for s in sfh_files]
+    msfhs = [match.utils.MatchSFH(s) for s in sfh_files]
 
     cols = ['darkred', 'orange', 'black', 'navy']
     fig, (ax1, ax2) = plt.subplots(nrows=2)
@@ -226,15 +229,15 @@ def match_diagnostic_plots(base=os.getcwd(), sfh_str='*cov?.sfh', cmd_str='*cov?
     for i, cmd_file in enumerate(cmd_files):
         labels[1] = '${\\rm %s}$' % msfhs[i].name.split('.')[0].replace('_', '\ ')
         labels[-1] = '$%.1f$' % msfhs[i].bestfit
-        rsp.match.graphics.pgcmd(cmd_file, filter1=filter1, filter2=filter2,
+        match.graphics.pgcmd(cmd_file, filter1=filter1, filter2=filter2,
                                  labels=labels,
               figname=cmd_file + '.png')
-        rsp.match.utils.match_stats(sfh_files[i], cmd_file, nfp_nonsfr=5,
+        match.utils.match_stats(sfh_files[i], cmd_file, nfp_nonsfr=5,
                                     nmc_runs=10000, outfile=cmd_file+'.dat')
 
-    ssp_files = rsp.fileio.get_files(base, '*ssp*scrn')
+    ssp_files = fileio.get_files(base, '*ssp*scrn')
     if len(ssp_files) > 0:
-        [rsp.match.utils.strip_header(ssp) for ssp in ssp_files]
+        [match.utils.strip_header(ssp) for ssp in ssp_files]
 
     return
 
@@ -244,8 +247,8 @@ def cov_testgrid_plots(ss='zc'):
     #base = '/Users/phil/research/clusters/n419/match/fake_tests'
     base = '/home/rosenfield/research/clusters/n419/match/fake/fake_9.00_9.20_1.44_0.004_0.05'
 
-    sfh_files = rsp.fileio.get_files(base, '*' + ss)
-    msfhs = [rsp.match.utils.MatchSFH(s) for s in sfh_files]
+    sfh_files = fileio.get_files(base, '*' + ss)
+    msfhs = [match.utils.MatchSFH(s) for s in sfh_files]
 
     for i in range(len(msfhs)):
         # assuming n419_s12_cov7_c4in format
@@ -257,7 +260,7 @@ def cov_testgrid_plots(ss='zc'):
     cov_ins = [msfhs[i].cov_in for i in range(len(msfhs))]
     ucovs = np.unique(cov_ins)
     ncovs = len(ucovs)
-    cols = rsp.graphics.discrete_colors(ncovs)
+    cols = graphics.discrete_colors(ncovs)
 
     ylabs = [r'$SFR\ \rm{(M_\odot/yr)}$', r'$Z$']
     for i, val in enumerate(['SFR', 'MH']):
@@ -329,10 +332,10 @@ def compare_covs_khd():
     ptcri_names = [base + 'data/p2m_ptcri_CAF09_D13_MC_S13_OV0.3_Z0.004_Y0.2557.dat',
                    base + 'data/p2m_ptcri_CAF09_D13_MC_S13_OV0.5_Z0.004_Y0.2557.dat',
                    base + 'data/p2m_ptcri_CAF09_D13_MC_S13_OV0.7_Z0.004_Y0.2557.dat']
-    tracks = [rsp.padova_tracks.Track(t) for t in track_names]
+    tracks = [padova_tracks.Track(t) for t in track_names]
     for i in range(len(tracks)):
         tracks[i].cov = cov[i]
-    ptcris = [rsp.padova_tracks.critical_point.critical_point(p) for p in ptcri_names]
+    ptcris = [padova_tracks.critical_point.critical_point(p) for p in ptcri_names]
     tracks = [ptcris[i].load_eeps(tracks[i], sandro=False) for i in range(len(tracks))]
     axs = compare_khd(tracks)
     [ax.set_ylim(0,.550) for ax in axs]
@@ -375,7 +378,7 @@ def compare_covs(tracks):
     [ax.set_xlim(475,600) for ax in axs]
 
 
-def eep_summary_table(tracks, outfmt='latex', isort='mass', diff_table=True):
+def eep_summary_table(tracks, outfmt='latex', isort='mass', diff_table=False):
     fmt = '%.1f %g %g %.2e %.2e %.2e %.2e %.2e %.2e \n'
 
     def keyfunc(track):
@@ -390,11 +393,10 @@ def eep_summary_table(tracks, outfmt='latex', isort='mass', diff_table=True):
         fmt = fmt.replace(' ', ' & ').replace('\n', ' \\\\ \n')
 
     outstr = ['OV Z Mass MSTOage MSTOradius tauH TRGBage TRGBRadius tauHe \n']
-    ptcri_loc = '/Users/phil/research/stel_evo/CAF09_D13/data/'
-    ts = rsp.padova_tracks.TrackSet()
+    ts = padova_tracks.TrackSet()
     if type(tracks[0]) == str:
         print('loading tracks')
-        tracks = [rsp.padova_tracks.Track(t) for t in tracks]
+        tracks = [padova_tracks.Track(t) for t in tracks]
 
     for t in tracks:
         t.cov = float(t.base.split('OV')[1].split('_')[0])
@@ -403,8 +405,10 @@ def eep_summary_table(tracks, outfmt='latex', isort='mass', diff_table=True):
         tracks = sorted(tracks, key=keyfunc)
 
     ts.tracks = tracks
-    ts._load_ptcri(ptcri_loc, sandro=False)
+    ts.tracks = ts._load_ptcri(ptcri_loc, sandro=False)
     for t in ts.tracks:
+        if t.flag is not None or len(t.iptcri) < 5:
+            continue
         t.ageMSTO = t.data.AGE[t.iptcri[5]]
         t.ageTRGB = t.data.AGE[t.iptcri[10]]
         t.rMSTO = t.data.Rstar[t.iptcri[5]]
