@@ -123,17 +123,22 @@ def verify(fitsfileslist):
 
 def checkflcraw():
     #ipython
-    dirs = !! ls
-    for dir in dirs:
-        ls = os.listdir(dir)
-        flts = [os.path.join(dir, l) for l in ls if 'flt' in l]
+    dirs = !! ls 
+    for dirt in dirs:
+        lst = os.listdir(dirt)
+        flts = [os.path.join(dirt, l) for l in lst if 'flt' in l]
+        flts = !! ls multiband/*/*fits WFC3/*/*fits
         flcs = [l.replace('flt', 'flc') for l in flts]
         for f in flcs:
             if not os.path.isfile(f):
                 raw = f.replace('flc', 'raw')
-                #print '{}: no flc'.format(f.replace('flc', 'flt'))
-                if not os.path.isfile(raw):
-                    print '{}: no raw'.format(f.replace('flc', 'flt'))
+                hdr = fits.getheader(f.replace('flc', 'flt'))
+                try:
+                    print '{} {} {} {}'.format(os.path.split(f)[1].replace('flc', 'flt'), hdr['DETECTOR'], hdr['INSTRUME'], hdr['FILTER'])
+                except:
+                    print '{} {} {} {} {}'.format(os.path.split(f)[1].replace('flc', 'flt'), hdr['DETECTOR'], hdr['INSTRUME'], hdr['FILTER1'], hdr['FILTER2'])
+                #if not os.path.isfile(raw):
+                #    print '{}: no raw'.format(f.replace('flc', 'flt'))
 
     dirs = !! ls
     for dirt in dirs:
