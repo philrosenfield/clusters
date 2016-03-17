@@ -8,7 +8,8 @@ import sys
 import os
 import numpy as np
 
-def make_table(filelist, outfile='table.dat', clobber=False, delimiter=' ', nodata='...'):
+def make_table(filelist, outfile='table.dat', clobber=False, delimiter=' ',
+               nodata='...'):
     """
     Make a table from the headers of HST fits images.
     Columns are hard coded and only tested for ACS, WFC3, and WFPC2.
@@ -36,21 +37,27 @@ def make_table(filelist, outfile='table.dat', clobber=False, delimiter=' ', noda
     The formatting and the column names are separated.
     """
     head = delimiter.join('instrument detector propid target ra dec filter1 '
-                          'filter2 pr_inv exptime date-obs filename'.split()) + '\n'
+                          'filter2 pr_inv exptime date-obs rootname filename'.split()) + '\n'
 
     if delimiter == ',':
         # values like exptime get string, not int, because nodata is a string.
-        header = '#@string,string,string,string,ra,dec,string,string,string,string,string,string\n'
+        header = '#@string,string,string,string,ra,dec,string,string,string,string,string,string,string\n'
         header += head
         outfile = outfile.replace('dat', 'csv')
     else:
         header = '# ' + head
 
-    acs_keys = ['INSTRUME', 'DETECTOR', 'PROPOSID', 'TARGNAME', 'RA_TARG', 'DEC_TARG',
-                'FILTER1', 'FILTER2', 'PR_INV_L', 'EXPTIME', 'DATE-OBS']
+    acs_keys = ['INSTRUME', 'DETECTOR', 'PROPOSID', 'TARGNAME', 'RA_TARG',
+                'DEC_TARG', 'FILTER1', 'FILTER2', 'PR_INV_L', 'EXPTIME',
+                'DATE-OBS', 'ROOTNAME']
+    
+    wfc3_keys = ['INSTRUME', 'DETECTOR', 'PROPOSID', 'TARGNAME', 'RA_TARG',
+                 'DEC_TARG', 'FILTER', 'FILTER2', 'PR_INV_L', 'EXPTIME',
+                 'DATE-OBS', 'ROOTNAME']
 
-    wfpc2_keys = ['INSTRUME', 'INSTRUME', 'PROPOSID', 'TARGNAME', 'RA_TARG', 'DEC_TARG',
-                  'FILTNAM1', 'FILTNAM2', 'PROPOSID', 'EXPTIME', 'DATE-OBS']
+    wfpc2_keys = ['INSTRUME', 'INSTRUME', 'PROPOSID', 'TARGNAME', 'RA_TARG',
+                  'DEC_TARG', 'FILTNAM1', 'FILTNAM2', 'PROPOSID', 'EXPTIME',
+                  'DATE-OBS', 'ROOTNAME']
 
     line = ''
     for filename in filelist:
@@ -65,11 +72,12 @@ def make_table(filelist, outfile='table.dat', clobber=False, delimiter=' ', noda
             elif inst == 'ACS':
                 keys = acs_keys
             else:
-                #print('WARNING: {} may not be supported'.format(inst))
-                keys = acs_keys
+                keys = wfc3_keys
 
-            fmt_list = np.array(('%({0})s %({1})s %({2})s %({3})s %({4}).6f %({5}).6f '
-                                 '%({6})s %({7})s %({8})s %({9})i %({10})s').format(*keys).split())
+
+            fmt_list = np.array(('%({0})s %({1})s %({2})s %({3})s %({4}).6f '
+                                 '%({5}).6f %({6})s %({7})s %({8})s %({9})i '
+                                 '%({10})s %({11})s').format(*keys).split())
             # create space for no data
             nidx = [i for i, k in enumerate(keys) if not k in data]
             # it's resonable to not have filter1, filter2, but more than that?
@@ -83,7 +91,8 @@ def make_table(filelist, outfile='table.dat', clobber=False, delimiter=' ', noda
             continue
 
         line += fmt % data
-        line += delimiter + '%s\n' % filename
+        
+        line += '{}{}\n'.format(delimiter,filename)
 
     if clobber or not os.path.isfile(outfile):
         wflag = 'w'

@@ -61,13 +61,13 @@ def catalog_line(name, data, ms=10, color='red', mast=True):
             "aladin.addCatalog({0});\n".format(name, ms, color))
     if mast:
         fmt = ("A.marker(%(s_ra)f, %(s_dec)f, "
-               "{popupTitle: '%(target_name)s', "
+               "{popupTitle: '%(target)s', "
                "popupDesc: "
-               "'<em>Instrument:</em> %(instrument)s "
+               "'<em>Instrument:</em> %(instrument_x)s "
                "<em>Filters:</em> %(filters)s <br/>"
-               "<em>PI:</em> %(proposal_pi)s <em>PID:</em> %(proposal_id)s <br/>"
-               "<em>Exp time:</em> %(t_exptime)i <br/>"
-               "<br/><a href=\"%(jpegURL)s\" target=\"_blank\"><img src=\"%(jpegURL)s\" alt=\"%(target_name)s jpeg preview\"></a>'})")
+               "<em>PI:</em> %(pr_inv)s <em>PID:</em> %(propid)s <br/>"
+               "<em>Exp time:</em> %(t_exptime)i <br/>")
+               #"<br/><a href=\"%(jpegURL)s\" target=\"_blank\"><img src=\"%(jpegURL)s\" alt=\"%(target_name)s jpeg preview\"></a>'})")
     else:
         fmt = ("A.marker(%(ra)s, %(dec)s, "
                "{popupTitle: '%(propid)s %(target)s', "
