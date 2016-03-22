@@ -9,6 +9,8 @@ allTheLetters = string.lowercase
 
 def replace_all(text, dic):
     """perfrom text.replace(key, value) for all keys and values in dic"""
+    if text is None:
+        return text
     for old, new in dic.iteritems():
         text = text.replace(old, new)
     return text
@@ -37,7 +39,10 @@ def polygon_line(name, polygon_array, color='#ee2345', lw=3):
 
     poly_str = []
 
-    for line in polygon_array:
+    for i in range(len(polygon_array)):
+        line = polygon_array[i]
+        if line is np.ma.core.masked:
+            return ''
         # LAZY: could use astropy to convert coord systems
         repd = {'J2000 ': '', 'GSC1 ': '', 'ICRS ': ''}
         poly_line = replace_all(line, repd).split('POLYGON ')[1:]
@@ -60,13 +65,13 @@ def catalog_line(name, data, ms=10, color='red', mast=True):
     head = ("var {0} = A.catalog({{name: '{0}', sourceSize: {1}, color: '{2}'}});\n"
             "aladin.addCatalog({0});\n".format(name, ms, color))
     if mast:
-        fmt = ("A.marker(%(s_ra)f, %(s_dec)f, "
+        fmt = ("A.marker(%(ra)f, %(dec)f, "
                "{popupTitle: '%(target)s', "
                "popupDesc: "
-               "'<em>Instrument:</em> %(instrument_x)s "
-               "<em>Filters:</em> %(filters)s <br/>"
+               "'<em>Instrument:</em> %(instrument)s "
+               "<em>Filters:</em> %(filter1)s, %(filter2)s  <br/>"
                "<em>PI:</em> %(pr_inv)s <em>PID:</em> %(propid)s <br/>"
-               "<em>Exp time:</em> %(t_exptime)i <br/>'})")
+               "<em>Exp time:</em> %(exptime)i <br/>'})")
                #"<br/><a href=\"%(jpegURL)s\" target=\"_blank\"><img src=\"%(jpegURL)s\" alt=\"%(target_name)s jpeg preview\"></a>'})")
     else:
         fmt = ("A.marker(%(ra)s, %(dec)s, "
