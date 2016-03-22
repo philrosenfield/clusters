@@ -2,7 +2,7 @@ import argparse
 from palettable.colorbrewer import qualitative
 import numpy as np
 import sys
-
+import pandas as pd
 from astropy.table import Table
 import string
 allTheLetters = string.lowercase
@@ -22,7 +22,7 @@ def read_hlacsv(filename, maxlength=1200, raunit='decimal'):
     First line is column format
     Second line is column names
     """
-    return Table.read(filename, header_start=1)
+    return pd.read_csv(filename, header=1)
 
 
 def polygon_line(name, polygon_array, color='#ee2345', lw=3):
@@ -41,8 +41,8 @@ def polygon_line(name, polygon_array, color='#ee2345', lw=3):
 
     for i in range(len(polygon_array)):
         line = polygon_array[i]
-        if line is np.ma.core.masked:
-            return ''
+        if line is np.nan:
+            continue
         # LAZY: could use astropy to convert coord systems
         repd = {'J2000 ': '', 'GSC1 ': '', 'ICRS ': ''}
         poly_line = replace_all(line, repd).split('POLYGON ')[1:]
@@ -82,7 +82,7 @@ def catalog_line(name, data, ms=10, color='red', mast=True):
                 "<em>PI:</em> %(pr_inv)s <br/>"
                 "<em>Exp time:</em> %(exptime)i <br/>"
                 "\"%(filename)s\"<br/>'})")
-    catalog = ', '.join([fmt % d for d in data])
+    catalog = ', '.join([fmt % data.iloc[d] for d in range(len(data))])
     cat_line = "{0}{1}.addSources([{2}]);\n".format(head, name, catalog)
     return cat_line
 
