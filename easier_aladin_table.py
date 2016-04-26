@@ -81,7 +81,7 @@ def catalog_line(name, data, ms=10, color='red', mast=True):
     fmt = ("A.marker(%(ra)f, %(dec)f, "
            "{popupTitle: '%(target)s', "
            "popupDesc: "
-           "'<em>Instrument:</em> %(instrument)s <em>PID:</em> %(propid)s <br/>}")
+           "'<em>Instrument:</em> %(instrument)s <em>PID:</em> %(propid)s <br/>'})")
 
     catalog = ', '.join([fmt % data.iloc[d] for d in range(len(data))])
     cat_line = "{0}{1}.addSources([{2}]);\n".format(head, name, catalog)
