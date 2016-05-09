@@ -5,6 +5,7 @@ import sys
 
 import pandas as pd
 import string
+from footprint_overlaps import parse_poly, read_footprints
 allTheLetters = string.lowercase
 
 def replace_all(text, dic):
@@ -14,13 +15,22 @@ def replace_all(text, dic):
     return text
 
 
-def read_hlacsv(filename, maxlength=1200, raunit='decimal'):
+def read_hlacsv(filename):
     """
     Read csv output from MAST discovery portal.
     First line is column format
     Second line is column names
     """
-    return Table.read(filename, header_start=1)
+    import os
+    data = pd.read_csv(filename, sep=';')
+    data['target'] = [os.path.split(f)[0].split('_')[1] for f in data['filename']]
+    data['propid'] = [os.path.split(f)[0].split('_')[0] for f in data['filename']]
+    if not 'ra' in data.keys():
+        radecs = np.array([data['radec'].iloc[i].replace('point','').split()
+                           for i in range(len(data))], dtype=float)
+        data['ra'] = radecs.T[0]
+        data['dec'] = radecs.T[1]
+    return data
 
 def read_csv(filename):
     """
@@ -42,7 +52,7 @@ def read_csv(filename):
     data['target'] = list(targets)
     data['propid'] = list(pids)
     data['instrument'] = [l.split(',')[0].split('/')[0] for l in radec]
-    s_region = [l.strip().split('reg,')[1] for l in lines if 'polygon' in l]
+    s_region = [l.strip().split('reg')[1] for l in lines if 'polygon' in l]
     return data, s_region
 
 
@@ -51,21 +61,9 @@ def polygon_line(name, polygon_array, color='#ee2345', lw=3):
     add polygons
     some lines in the data have two polygons (each chip)
     """
-    def grab_coors(line):
-        coords = ', '.join(['[{}, {}]'.format(j, k)
-                           for (j, k) in zip(line[::2], line[1::2])])
-        return coords
-
     head = "var {0} = A.graphicOverlay({{color: \'{1}\', lineWidth: {2}}});\naladin.addOverlay({0});\n".format(name, color, lw)
 
-    poly_str = []
-
-    for line in polygon_array:
-        # LAZY: could use astropy to convert coord systems
-        repd = {'J2000 ': '', 'GSC1 ': '', 'ICRS ': '', 'polygon(': '', ')': ''}
-        poly_line = replace_all(line, repd).split('#')[0]
-        coords = grab_coors(poly_line.split(','))
-        poly_str.append('A.polygon([{}])'.format(coords))
+    poly_str = [('A.polygon([{}])'.format(parse_poly(line, return_string=True))) for line in polygon_array]
 
     polygons = ', '.join(poly_str)
 
@@ -101,10 +99,10 @@ header = \
 
 <script>
 var aladin = A.aladin('#aladin-lite-div', {target: '03 46 45.6 -74 26 40', fov: 30.0, fullScreen: true});
-aladin.addCatalog(A.catalogFromVizieR('J/MNRAS/389/678/table3', '03 46 46.5 -74 26 40', 30.0, {onClick: 'showTable', name: 'Bica2006'}));
-aladin.addCatalog(A.catalogFromVizieR('J/A+A/517/A50/clusters', '03 46 46.5 -74 26 40', 30.0, {onClick: 'showTable', name: 'Glatt2010'}));
-aladin.addCatalog(A.catalogFromVizieR('J/MNRAS/430/676/table2', '03 46 46.5 -74 26 40', 30.0, {onClick: 'showTable', name: 'Baumgardt2013'}));
 """
+#aladin.addCatalog(A.catalogFromVizieR('J/MNRAS/389/678/table3', '03 46 46.5 -74 26 40', 30.0, {onClick: 'showTable', name: 'Bica2006'}));
+#aladin.addCatalog(A.catalogFromVizieR('J/A+A/517/A50/clusters', '03 46 46.5 -74 26 40', 30.0, {onClick: 'showTable', name: 'Glatt2010'}));
+#aladin.addCatalog(A.catalogFromVizieR('J/MNRAS/430/676/table2', '03 46 46.5 -74 26 40', 30.0, {onClick: 'showTable', name: 'Baumgardt2013'}));
 
 footer = '</script>\n</html>\n'
 
@@ -137,7 +135,11 @@ def make_html(outfile=None, csvs=None, poly_names=None, poly_colors=None, ms=10,
 
     pstr = [header]
     for i in range(ncsvs):
-        data, s_region = read_csv(csvs[i])
+        #data, s_region = read_csv(csvs[i])
+        data = read_hlacsv(csvs[i])
+        data['instrument'] = 'multiband'
+        s_region = data['s_region']
+        #data, s_region = read_footprints(csvs[i], instrument='WFC3')
         pstr.append(polygon_line(poly_names[i], s_region, lw=lw,
                                  color=poly_colors[i]))
 
@@ -163,6 +165,7 @@ def main(argv):
                         help='name(s) of csv(s)')
 
     args = parser.parse_args(argv)
+
 
     make_html(outfile=args.output, csvs=args.name, mast=args.mast)
 
