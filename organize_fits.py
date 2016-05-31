@@ -121,35 +121,6 @@ def verify(fitsfileslist):
             if cal < 3.3:
                 print('{}: CAL_VER is less than 3.3: {}'.format(f, hdr['CAL_VER']))
 
-def checkflcraw():
-    #ipython
-    dirs = !! ls
-    for dir in dirs:
-        ls = os.listdir(dir)
-        flts = [os.path.join(dir, l) for l in ls if 'flt' in l]
-        flcs = [l.replace('flt', 'flc') for l in flts]
-        for f in flcs:
-            if not os.path.isfile(f):
-                raw = f.replace('flc', 'raw')
-                #print '{}: no flc'.format(f.replace('flc', 'flt'))
-                if not os.path.isfile(raw):
-                    print '{}: no raw'.format(f.replace('flc', 'flt'))
-
-    dirs = !! ls
-    for dirt in dirs:
-        filts = []
-        lst = os.listdir(dirt)
-        hdrs = [fits.getheader(os.path.join(dirt,f)) for f in lst]
-        for i in range(len(hdrs)):
-            try:
-                filts.append(hdrs[i]['FILTER'])
-            except:
-                filts.append(hdrs[i]['FILTER1'])
-                filts.append(hdrs[i]['FILTER2'])
-        print len(np.unique(filts)), np.unique(filts), dirt
-
-
-
 
 def same_targ(fits):
     return np.unique([f.split('_')[0] for f in fits], return_index=True)
