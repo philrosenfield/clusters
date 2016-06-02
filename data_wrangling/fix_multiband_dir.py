@@ -15,12 +15,11 @@ def fix_multiband(root_path):
         opids = []
         for f in fitsfiles:
             hdr = fits.getheader(os.path.join(root, f))
-            updates = [i for i in hdr['history'] if key in i]
+            updates = [i for i in hdr['history'] if key.upper() in i.upper()]
             try:
                 opid, = [a for a in [int(u.split('from')[1].split('to')[0])
                                      for u in updates] if a != 13901]
             except ValueError:
-                print( hdr['history'])
                 print('{}: {} {} never updated?!'.format(f, hdr[key], hdr['targname']))
                 break
             camera = hdr['instrume']
