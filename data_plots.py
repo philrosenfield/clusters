@@ -136,13 +136,13 @@ def cmd(obs, filter1, filter2, inset=False, scatter=False,
     '''
     plot cmd of data, two insets are hard coded.
     '''
+    color, mag, color_err, mag_err, good, x, y = load_obs(obs, filter1,
+                                                          filter2, xyfile=xyfile)
+
     if len(x) == 0:
         fig, ax = plt.subplots(figsize=(12, 12))
     else:
         fig, (ax, axxy) = plt.subplots(ncols=2, figsize=(16, 8))
-
-    color, mag, color_err, mag_err, good, x, y = load_obs(obs, filter1,
-                                                          filter2, xyfile=xyfile)
 
     ax = _plot_cmd(color, mag, color_err=color_err, mag_err=mag_err, inds=good,
                    ax=ax, scatter=scatter)
@@ -150,8 +150,13 @@ def cmd(obs, filter1, filter2, inset=False, scatter=False,
     plt.tick_params(labelsize=18)
     ax.set_ylabel(r'${}$'.format(filter2), fontsize=24)
     ax.set_xlabel(r'${}-{}$'.format(filter1, filter2), fontsize=24)
-    ax.set_ylim(26., 14)
-    ax.set_xlim(-0.5, 4)
+
+    if filter1 == "F160W" or filter1 == "F110W":
+        ax.set_ylim(28., 14)
+        ax.set_xlim(-5, 2)
+    else:
+        ax.set_ylim(26., 14)
+        ax.set_xlim(-0.5, 4)
 
     axs = [ax]
 
@@ -288,9 +293,17 @@ def main(argv):
             _, filters = rsp.asts.parse_pipeline(obs)
         if len(filters) == 1:
             print('Error only one filter {}.'.format(obs))
+            print('perhaps see .pipeline_filenames.main()')
             continue
 
-        filter2 = filters.pop(-1)
+        # Reddest should be filter2
+        if 'F814W' in filters:
+            idx = filters.index('F814W')
+        if 'F110W' in filters:
+            idx = filters.index('F110W')
+        if 'F160W' in filters:
+            idx = filters.index('F160W')
+        filter2 = filters.pop(idx)
 
         for filter1 in filters:
             # either a supplied outputfile, the obs name + .png
@@ -307,7 +320,7 @@ def main(argv):
                         # ^ leaves _-F336W-F814W or F110W----F814W so:
                         uch = {'--': '-'}
                         outfile = replace_all(replace_all(outfile, uch),
-                                              uch).replace('_-', '_')
+                                              uch).replace('_-', '_').replace('-_', '_')
                     except ValueError, e:
                         print('{}: {}'.format(e, filters))
                         return
