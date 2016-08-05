@@ -49,15 +49,15 @@ def make_table(filelist, outfile='table.dat', clobber=False, delimiter=' ',
 
     acs_keys = ['INSTRUME', 'DETECTOR', 'PROPOSID', 'TARGNAME', 'RA_TARG',
                 'DEC_TARG', 'FILTER1', 'FILTER2', 'PR_INV_L', 'EXPTIME',
-                'DATE-OBS', 'ROOTNAME']
+                'DATE-OBS', 'ROOTNAME', 'EXPSTART', 'EXPEND', 'EXPTIME']
     
     wfc3_keys = ['INSTRUME', 'DETECTOR', 'PROPOSID', 'TARGNAME', 'RA_TARG',
                  'DEC_TARG', 'FILTER', 'FILTER2', 'PR_INV_L', 'EXPTIME',
-                 'DATE-OBS', 'ROOTNAME']
+                 'DATE-OBS', 'ROOTNAME', 'EXPSTART', 'EXPEND', 'EXPTIME']
 
     wfpc2_keys = ['INSTRUME', 'INSTRUME', 'PROPOSID', 'TARGNAME', 'RA_TARG',
                   'DEC_TARG', 'FILTNAM1', 'FILTNAM2', 'PROPOSID', 'EXPTIME',
-                  'DATE-OBS', 'ROOTNAME']
+                  'DATE-OBS', 'ROOTNAME', 'EXPSTART', 'EXPEND', 'EXPTIME']
 
     line = ''
     for filename in filelist:
@@ -77,7 +77,8 @@ def make_table(filelist, outfile='table.dat', clobber=False, delimiter=' ',
 
             fmt_list = np.array(('%({0})s %({1})s %({2})s %({3})s %({4}).6f '
                                  '%({5}).6f %({6})s %({7})s %({8})s %({9})i '
-                                 '%({10})s %({11})s').format(*keys).split())
+                                 '%({10})s %({11})s %({12}).6f %({13}).6f '
+                                 '%({14}).6f').format(*keys).split())
             # create space for no data
             nidx = [i for i, k in enumerate(keys) if not k in data]
             # it's resonable to not have filter1, filter2, but more than that?
@@ -130,3 +131,4 @@ def main(argv):
 
 if __name__ == '__main__':
     main(sys.argv[1:])
+

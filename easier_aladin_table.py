@@ -5,14 +5,9 @@ import sys
 
 import pandas as pd
 import string
-from footprint_overlaps import parse_poly, read_footprints
+from utils import replace_all
+from footprints.footprint_overlaps import parse_poly, read_footprints
 allTheLetters = string.lowercase
-
-def replace_all(text, dic):
-    """perfrom text.replace(key, value) for all keys and values in dic"""
-    for old, new in dic.iteritems():
-        text = text.replace(old, new)
-    return text
 
 
 def read_hlacsv(filename):
@@ -135,11 +130,16 @@ def make_html(outfile=None, csvs=None, poly_names=None, poly_colors=None, ms=10,
 
     pstr = [header]
     for i in range(ncsvs):
-        #data, s_region = read_csv(csvs[i])
-        data = read_hlacsv(csvs[i])
-        data['instrument'] = 'multiband'
-        s_region = data['s_region']
-        #data, s_region = read_footprints(csvs[i], instrument='WFC3')
+        try:
+            data = read_hlacsv(csvs[i])
+            data['instrument'] = 'multiband'
+            s_region = data['s_region']
+        except:
+            try:
+                data, s_region = read_footprints(csvs[i], instrument='WFC3')
+            except:
+                data, s_region = read_csv(csvs[i])
+            
         pstr.append(polygon_line(poly_names[i], s_region, lw=lw,
                                  color=poly_colors[i]))
 
@@ -155,8 +155,11 @@ def main(argv):
     parser = argparse.ArgumentParser(description="Create aladin view from MAST \
                                                   DiscoveryPortal csv output")
 
-    parser.add_argument('-o', '--output', type=str, default='script.html',
+    parser.add_argument('-o', '--output', type=str, default='default',
                         help='name of output file')
+
+    parser.add_argument('-v', '--pdb', action='store_true',
+                        help='invoke pdb')
 
     parser.add_argument('-m', '--mast', action='store_false',
                         help='csv is not from MAST (no s_regions, html link, etc)')
@@ -166,6 +169,14 @@ def main(argv):
 
     args = parser.parse_args(argv)
 
+    if args.pdb:
+        import pdb
+        pdb.set_trace()
+    if args.output == 'default':
+        if len(args.name) > 1:    
+            args.output = 'script.html'
+        else:
+            args.output = args.name[0].replace('csv', 'html')
 
     make_html(outfile=args.output, csvs=args.name, mast=args.mast)
 

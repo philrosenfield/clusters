@@ -22,7 +22,7 @@ def read_hlacsv(filename, maxlength=1200, raunit='decimal'):
     First line is column format
     Second line is column names
     """
-    return pd.read_csv(filename, header=1)
+    return pd.read_csv(filename, header=0)
 
 
 def polygon_line(name, polygon_array, color='#ee2345', lw=3):
@@ -31,7 +31,7 @@ def polygon_line(name, polygon_array, color='#ee2345', lw=3):
     some lines in the data have two polygons (each chip)
     """
     def grab_coors(line):
-        coords = ', '.join(['[{}, {}]'.format(j, k)
+        coords = ', '.join(['[{:.6f}, {:.6f}]'.format(float(j), float(k))
                            for (j, k) in zip(line[::2], line[1::2])])
         return coords
 
@@ -41,18 +41,20 @@ def polygon_line(name, polygon_array, color='#ee2345', lw=3):
 
     for i in range(len(polygon_array)):
         line = polygon_array[i]
-        if line is np.nan:
+        if line is np.nan or len(line) == 0:
             continue
+        line = line.replace('\'','')
         # LAZY: could use astropy to convert coord systems
-        repd = {'J2000 ': '', 'GSC1 ': '', 'ICRS ': ''}
+        repd = {'J2000 ': '', 'GSC1 ': '', 'ICRS ': '', 'OTHER': ''}
         poly_line = replace_all(line, repd).split('POLYGON ')[1:]
         if len(poly_line) > 1:
             for line in poly_line:
                 coords = grab_coors(line.split())
                 poly_str.append('A.polygon([{}])'.format(coords))
-        else:
+        elif len(poly_line) == 1:
             coords = grab_coors(poly_line[0].split())
             poly_str.append('A.polygon([{}])'.format(coords))
+            
 
     polygons = ', '.join(poly_str)
 
