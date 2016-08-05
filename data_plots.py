@@ -143,7 +143,6 @@ def cmd(obs, filter1, filter2, inset=False, scatter=False,
                                                           filter1,
                                                           filter2,
                                                           xyfile=xyfile)
-
     if len(x) == 0:
         fig, ax = plt.subplots(figsize=(12, 12))
     else:
@@ -312,11 +311,18 @@ def main(argv):
         if len(filters) == 1:
             if obs.endswith('.fits'):
                 filters = get_filters(obs)
-            else:
-                print('Error only one filter {}.'.format(obs))
-                continue
+            print('Error only one filter {}.'.format(obs))
+            print('perhaps see .pipeline_filenames.main()')
+            continue
 
-        filter2 = filters.pop(-1)
+        # Reddest should be filter2
+        if 'F814W' in filters:
+            idx = filters.index('F814W')
+        if 'F110W' in filters:
+            idx = filters.index('F110W')
+        if 'F160W' in filters:
+            idx = filters.index('F160W')
+        filter2 = filters.pop(idx)
 
         for filter1 in filters:
             # either a supplied outputfile, the obs name + .png
@@ -332,11 +338,11 @@ def main(argv):
                                               dict(zip(notfs,
                                                        ['']*len(notfs))))
                         # ^ leaves _-F336W-F814W or F110W----F814W so:
-                        uch = {'--': '-'}
-                        outfile = replace_all(replace_all(outfile, uch),
-                                              uch).replace('_-', '_')
-                    except ValueError, err:
-                        print('{}: {}'.format(err, filters))
+                        uch = {'--': '-', '_-': '_', '-_': '_'}
+                        outfile = replace_all(
+                            replace_all(replace_all(outfile, uch), uch), uch)
+                    except ValueError, e:
+                        print('{}: {}'.format(e, filters))
                         return
 
             if args.bokeh:
