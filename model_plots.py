@@ -2,45 +2,50 @@
 Plots for paper that use models primarily
 '''
 import padova_tracks
-import dweisz.match.scripts as match
+import match.scripts as match
 from ResolvedStellarPops import fileio, graphics
 import numpy as np
 import matplotlib.pylab as plt
 import os
 
+import pandas as pd
+
 td = padova_tracks.TrackDiag()
-#cov_strs = ['OV0.3', 'OV0.4', 'OV0.5', 'OV0.6', 'OV0.7']
+# cov_strs = ['OV0.3', 'OV0.4', 'OV0.5', 'OV0.6', 'OV0.7']
 cov_strs = ['OV0.3', 'OV0.4', 'OV0.6']
 tracks_dir = '/Users/rosenfield/research/stel_evo/tracks/CAF09_MC_S15/tracks/'
 ptcri_loc = '/Users/rosenfield/research/stel_evo/tracks/CAF09_MC_S15/data/'
 
-def scrap():
-    def input_output_plot(msfhs):
-     covs = [msfhs[i].cov for i in range(len(msfhs))]
-     cov_ins = [msfhs[i].cov_in for i in range(len(msfhs))]
-     best_fits = [msfhs[i].best_fit for i in range(len(msfhs))]
 
-     fig, ax = plt.subplots()
-     sc = ax.scatter(covs, cov_ins, c=np.log10(best_fits), marker='s', s=300)
-     plt.colorbar(sc)
-     ax.set_ylabel('Fake input COV')
-     ax.set_xlabel('SFH recovery COV')
-     return ax
+csv = 'combined_files.csv'
+data = pd.read_csv(csv)
+inds, = np.nonzero(np.exp(.5 * (data['fit'].min() - data['fit'])))
+cols = [c for c in df.columns if len(np.unique(df[c])) > 1 and
+        c != 'sfr' and c != 'fit' and c != 'Unnamed: 0']
 
-    for i in range(len(ucovs)):
-        #fig, ax = plt.subplots()
-        for k, j in enumerate(np.nonzero(ibins==i)[0]):
-            axs[i].plot(msfhs[j].data.lagei, msfhs[isame[i]].data.csfr - msfhs[j].data.csfr,
-                            lw=2, label='COV=%.1f' % (covs[j]), ls='steps-pre',
-                            color=cols[k])
+for i in range(len(cols)):
+    for j in range(len(cols)):
+        if i <= j:
+            continue
+        if len(np.unique(df[cols[i]])) > 1 and \
+           len(np.unique(df[cols[j]])) > 1:
+            ax = pcolor_(df[cols[i]], df[cols[j]], df.fit)
+            ax.set_ylabel(cols[j])
+            ax.set_xlabel(cols[i])
 
-        axs[i].set_title('COV in fake = %.1f' % ucovs[i])
-        axs[i].set_xlim(8.8, 9.4)
-        #axs[i].set_ylim(-2, 1.5)
-        axs[i].set_ylim(-0.6, 0.35)
-    axs[0].legend()
+fig, axs = plt.subplots(nrows=3, ncols=3)
+for i, j in itertools.product(range(3), range(3)):
+        if i == j:
+            pass
+        else:
+            pcolor_(data[cols[j]], data[cols[i]], data['fit'], ax=axs[i, j])
+            axs[i, j].set_xlabel(cols[j])
+            axs[i, j].set_ylabel(cols[i])
+
+        axs[i, j].set_visible(False)
 
 
+# SCRAP
 def plot_compare_at_eep(Z=0.004, comp='OV0.5', hb=False, eep_name='POINT_C',
                         xattr='MASS', yattr='AGE', yfunc='1/1e6*',
                         lab_name=None, sandro=True):
@@ -101,7 +106,7 @@ def plot_compare_at_eep(Z=0.004, comp='OV0.5', hb=False, eep_name='POINT_C',
     ts_dict = {}
     for cov_str in cov_strs:
         track_base, = fileio.get_dirs(tracks_dir,
-                                          criteria='%s_Z%g_' % (cov_str, Z))
+                                      criteria='%s_Z%g_' % (cov_str, Z))
         track_names = fileio.get_files(track_base, tsearch)
         ts = padova_tracks.TrackSet()
         ts.tracks = [padova_tracks.Track(t) for t in track_names]
@@ -129,8 +134,8 @@ def plot_compare_at_eep(Z=0.004, comp='OV0.5', hb=False, eep_name='POINT_C',
     ylab = r'$\tau_{%s, \Lambda_c = x} - \tau_{%s, \Lambda_c=%.1f}\ (\rm{Myr})$' % (lab_name, lab_name, cov)
     ax.set_ylabel(ylab, fontsize=20)
     ax.set_xlabel(r'$\rm{%s}\ M_\odot$' % xattr.title(), fontsize=20)
-    #ax.set_xlim(0.9, 3.9)
-    #ax.set_ylim(-200, 200)
+    # ax.set_xlim(0.9, 3.9)
+    # ax.set_ylim(-200, 200)
     ax.tick_params(labelsize=16)
     ax.legend(loc=0, frameon=False, fontsize=16)
     outfig = 'comp_lambdac_z%g.png' % Z
@@ -138,44 +143,8 @@ def plot_compare_at_eep(Z=0.004, comp='OV0.5', hb=False, eep_name='POINT_C',
     return ax
 
 
-def plot_compare_tracks(sandro=True, Z=0.004):
-    # not sure if it's needed, but makes a pretty hrd.
-
-    masses = [1.5, 2., 2.6, 4.]
-    ts_dict = {}
-    for cov_str in cov_strs:
-        ts = padova_tracks.TrackSet()
-        ts.tracks_base, = fileio.get_dirs(tracks_dir,
-                                              criteria='%s_Z%g_' % (cov_str, Z))
-        ts.find_tracks(masses=masses)
-        ts._load_ptcri(ptcri_loc, search_extra=cov_str, sandro=sandro)
-        ptcri_attr = ts.select_ptcri(cov_str.translate(None, '0.'))
-        ptcri = ts.__getattribute__(ptcri_attr)
-        ts.tracks = [ptcri.load_eeps(t, sandro=sandro)
-                     for t in ts.tracks]
-        ts_dict[cov_str] = ts
-
-    cols = ['darkred', 'orange', 'darkgreen', 'navy', 'purple']
-    ax = plt.subplots(figsize=(6,12))[1]
-    for i, cov_str in enumerate(cov_strs):
-        for k, t in enumerate(ts_dict[cov_str].tracks):
-            ind = t.sptcri[ptcri.get_ptcri_name('NEAR_ZAM')]
-            if k == 0:
-                label = (r'$\Lambda_c=%s$' % cov_str).replace('OV', '')
-            else:
-                label = None
-            ax.plot(t.data.LOG_TE[ind:], t.data.LOG_L[ind:], color=cols[i],
-                    label=label)
-
-    ax.set_xlim(4.3, 3.6)
-    ax.set_ylim(.85, 3.5)
-    ax.set_ylabel(r'$\log L\ \rm{(L_\odot)}$', fontsize=20)
-    ax.set_xlabel(r'$\log T_{\rm{eff}}\ \rm{(K)}$', fontsize=20)
-    ax.tick_params(labelsize=16)
-    ax.legend(loc=0, frameon=False, fontsize=16)
-
-
-def cov_cluster_grid_plots(ss='sfh', base='/Users/phil/research/clusters/n419/match'):
+def cov_cluster_grid_plots(ss='sfh',
+                           base='/Users/phil/research/clusters/n419/match'):
     sfh_files = fileio.get_files(base, '*' + ss)
     msfhs = [match.utils.MatchSFH(s) for s in sfh_files]
     nsfhs = len(msfhs)
@@ -199,7 +168,8 @@ def cov_cluster_grid_plots(ss='sfh', base='/Users/phil/research/clusters/n419/ma
         plt.savefig('n419_covgrid_%s_lage.png' % val.lower())
 
 
-def match_diagnostic_plots(base=os.getcwd(), sfh_str='*cov?.sfh', cmd_str='*cov?.*cmd',
+def match_diagnostic_plots(base=os.getcwd(), sfh_str='*cov?.sfh',
+                           cmd_str='*cov?.*cmd',
                            filter1=r'F555W', filter2=r'F814W\ {\rm (HRC)}',
                            labels='default'):
     from matplotlib.ticker import NullFormatter
@@ -230,10 +200,9 @@ def match_diagnostic_plots(base=os.getcwd(), sfh_str='*cov?.sfh', cmd_str='*cov?
         labels[1] = '${\\rm %s}$' % msfhs[i].name.split('.')[0].replace('_', '\ ')
         labels[-1] = '$%.1f$' % msfhs[i].bestfit
         match.graphics.pgcmd(cmd_file, filter1=filter1, filter2=filter2,
-                                 labels=labels,
-              figname=cmd_file + '.png')
+                             labels=labels, figname=cmd_file + '.png')
         match.utils.match_stats(sfh_files[i], cmd_file, nfp_nonsfr=5,
-                                    nmc_runs=10000, outfile=cmd_file+'.dat')
+                                nmc_runs=10000, outfile=cmd_file+'.dat')
 
     ssp_files = fileio.get_files(base, '*ssp*scrn')
     if len(ssp_files) > 0:
@@ -244,7 +213,7 @@ def match_diagnostic_plots(base=os.getcwd(), sfh_str='*cov?.sfh', cmd_str='*cov?
 
 def cov_testgrid_plots(ss='zc'):
     '''make SFR vs Log Age, Z vs Log Age, and Best fit vs COV plots'''
-    #base = '/Users/phil/research/clusters/n419/match/fake_tests'
+    # base = '/Users/phil/research/clusters/n419/match/fake_tests'
     base = '/home/rosenfield/research/clusters/n419/match/fake/fake_9.00_9.20_1.44_0.004_0.05'
 
     sfh_files = fileio.get_files(base, '*' + ss)
@@ -284,7 +253,8 @@ def cov_testgrid_plots(ss='zc'):
         axs[0].set_xlim(8.8, 9.4)
         axs[-1].set_xlabel(r'$\log Age\ \rm{(yr)}$', fontsize=20)
         axs[2].set_ylabel(ylabs[i], fontsize=20)
-        plt.savefig(os.path.join(base, 'cov_testgrid_%s_lage.png' % val.lower()))
+        plt.savefig(os.path.join(base,
+                                 'cov_testgrid_%s_lage.png' % val.lower()))
 
     ibins = np.digitize(cov_ins, bins=ucovs) - 1
     bestfits = [msfhs[i].bestfit for i in range(len(msfhs))]
@@ -305,19 +275,45 @@ def cov_testgrid_plots(ss='zc'):
     plt.savefig(os.path.join(base, 'cov_testgrid_prob_cov.png'))
 
 
-def compare_khd(tracks, fusion=True, convection=True, khd_dict= {'CONV':  'black'}):
-    fig, axs = plt.subplots(nrows=3, figsize=(10, 8))
-    fig.subplots_adjust(left=0.08, right=0.95, top=0.95, hspace=0.4)
-    for i in range(len(tracks)):
-        td.kippenhahn(tracks[i], heb_only=False, between_ptcris=[4,11],
-                      xscale='linear', khd_dict=khd_dict, ax=axs[i],
-                      fusion=fusion)
-        axs[i].vlines(tracks[i].data.AGE[tracks[i].iptcri[5]]/1e6, 0, 1,
-                      color='grey', lw=2)
-        axs[i].vlines(tracks[i].data.AGE[tracks[i].iptcri[10]]/1e6, 0, 1,
-                      color='grey', lw=2)
-        axs[i].annotate('$\Lambda_c=%.1f$' % tracks[i].cov, (0.45, 0.85),
-                        xycoords='axes fraction', fontsize=18)
+def compare_khd(tracks, fusion=True, convection=True,
+                khd_dict={'CONV':  'black'}):
+    cols = ['darkred', 'orange', 'darkgreen', 'navy', 'purple']
+    axss = [plt.subplots(nrows=4, sharex=True, figsize=(10, 8))[1]
+            for _ in range(4)]
+    ycols = [logT, '', 'LOG_RHc', 'LOG_Pc']
+    ycolls = ['$\log T_{eff}$', '$\mu_c$', '$\\rho_c$', '$\log P_c$']
+    for i, cov_str in enumerate(cov_strs):
+        for k, t in enumerate(ts_dict[cov_str].tracks):
+            axs = axss[k]
+            xdata = t.data[age] / 1e6
+            for j, (ycol, ycoll) in enumerate(zip(ycols, ycolls)):
+                if len(ycol) == 0:
+                    ydata = t.muc  # [inds]
+                else:
+                    ydata = t.data[ycol]  # [inds]
+                axs[j].plot(xdata, ydata, lw=3, colors=cols[k],
+                            label='$\Lambda_c={:.1f}$'.format(t.ALFOV))
+                axs[j].set_ylabel('$%s$' % ycoll)
+                axs[j].set_ylim(np.min(ydata), np.max(ydata))
+                plt.legend()
+            axs[i].yaxis.set_major_locator(MaxNLocator(4))
+
+            # axs[i].xaxis.set_major_formatter(NullFormatter())
+            axs[0].annotate('$\Lambda_c=%.1f$' % t.ALFOV, (0.45, 0.85),
+                            xycoords='axes fraction', fontsize=18)
+            axs = axss[k]
+            t._load_iptcri(t.ptcri_file)
+            axs[i].plot(t.data[])
+            td.kippenhahn(t, heb_only=False, between_ptcris=[4, 6],
+                          xscale='linear', khd_dict=khd_dict,
+                          fusion=fusion, four_tops=True)
+            axs[i].vlines(t.data[age][t.iptcri[5]] / 1e6, 0, 1,
+                          color='grey', lw=2)
+            axs[i].vlines(t.data[age][t.iptcri[10]] / 1e6, 0, 1,
+                          color='grey', lw=2)
+            axs[i].annotate('$\Lambda_c=%.1f$' % t.ALFOV, (0.45, 0.85),
+                            xycoords='axes fraction', fontsize=18)
+            # fig.subplots_adjust(left=0.08, right=0.95, top=0.95, hspace=0.4)
 
     return axs
 
@@ -326,19 +322,25 @@ def compare_covs_khd():
     base = '/Users/phil/research/stel_evo/CAF09_D13/'
     cov = [0.3, 0.5, 0.7]
 
-    track_names = [base + 'tracks/MC_S13_OV0.3_Z0.004_Y0.2557/Z0.004Y0.2557OUTA1.74_F7_M2.40.PMS',
-                   base + 'tracks/MC_S13_OV0.5_Z0.004_Y0.2557/Z0.004Y0.2557OUTA1.74_F7_M2.40.PMS',
-                   base + 'tracks/MC_S13_OV0.7_Z0.004_Y0.2557/Z0.004Y0.2557OUTA1.74_F7_M2.40.PMS']
+    track_names = \
+        [base +
+         'tracks/MC_S13_OV0.3_Z0.004_Y0.2557/Z0.004Y0.2557OUTA1.74_F7_M2.40.PMS',
+         base + \
+         'tracks/MC_S13_OV0.5_Z0.004_Y0.2557/Z0.004Y0.2557OUTA1.74_F7_M2.40.PMS',
+         base + \
+         'tracks/MC_S13_OV0.7_Z0.004_Y0.2557/Z0.004Y0.2557OUTA1.74_F7_M2.40.PMS']
     ptcri_names = [base + 'data/p2m_ptcri_CAF09_D13_MC_S13_OV0.3_Z0.004_Y0.2557.dat',
                    base + 'data/p2m_ptcri_CAF09_D13_MC_S13_OV0.5_Z0.004_Y0.2557.dat',
                    base + 'data/p2m_ptcri_CAF09_D13_MC_S13_OV0.7_Z0.004_Y0.2557.dat']
     tracks = [padova_tracks.Track(t) for t in track_names]
     for i in range(len(tracks)):
         tracks[i].cov = cov[i]
-    ptcris = [padova_tracks.critical_point.critical_point(p) for p in ptcri_names]
-    tracks = [ptcris[i].load_eeps(tracks[i], sandro=False) for i in range(len(tracks))]
+    ptcris = [padova_tracks.critical_point.critical_point(p)
+              for p in ptcri_names]
+    tracks = [ptcris[i].load_eeps(tracks[i], sandro=False)
+              for i in range(len(tracks))]
     axs = compare_khd(tracks)
-    [ax.set_ylim(0,.550) for ax in axs]
+    [ax.set_ylim(0, .550) for ax in axs]
     [ax.set_ylabel('$m/M$', fontsize=18) for ax in axs]
     axs[0].set_xlim(480, 501)
     axs[1].set_xlim(530, 544.5)
@@ -355,7 +357,8 @@ def compare_covs(tracks):
     colors = ['k', 'b', 'r']
     fmt = '%(cov).1f '
     for i, track in enumerate(tracks):
-        print track.cov, track.mass, track.data.AGE[track.iptcri[5]]/1e6, track.data.AGE[track.iptcri[10]]/1e6
+        print(track.cov, track.mass, track.data.AGE[track.iptcri[5]]/1e6,
+              track.data.AGE[track.iptcri[10]]/1e6)
         xdata = track.data.AGE/1e6
         track.calc_core_mu()
         for ax, col, lab in zip(axs, columns, labels):
@@ -363,19 +366,20 @@ def compare_covs(tracks):
                 ydata = track.muc
             else:
                 ydata = track.data[col]
-            ax.plot(xdata, ydata, lw=3, color=colors[i], label='$\Lambda_c=%.1f$' % track.cov)
+            ax.plot(xdata, ydata, lw=3, color=colors[i],
+                    label='$\Lambda_c=%.1f$' % track.cov)
 
             ax.set_ylabel('$%s$' % lab)
-            #ax.set_ylim(np.min(ydata), np.max(ydata))
-            #ax.yaxis.set_major_locator(MaxNLocator(4))
-            #ax.xaxis.set_major_formatter(NullFormatter())
+            # ax.set_ylim(np.min(ydata), np.max(ydata))
+            # ax.yaxis.set_major_locator(MaxNLocator(4))
+            # ax.xaxis.set_major_formatter(NullFormatter())
 
             ax.vlines(track.data.AGE[tracks[i].iptcri[5]]/1e6, *ax.get_ylim(),
                       color='grey', lw=2)
             ax.vlines(track.data.AGE[tracks[i].iptcri[10]]/1e6, *ax.get_ylim(),
                       color='grey', lw=2)
 
-    [ax.set_xlim(475,600) for ax in axs]
+    [ax.set_xlim(475, 600) for ax in axs]
 
 
 def eep_summary_table(tracks, outfmt='latex', isort='mass', diff_table=False):
@@ -424,13 +428,13 @@ def eep_summary_table(tracks, outfmt='latex', isort='mass', diff_table=False):
     outstr.append('\n\n OV Z Mass MSTOage MSTOradius tauH TRGBage TRGBRadius tauHe \n')
     if diff_table:
         fmt2 = fmt.replace('.2e', '+.2f')
-        t05, t05_names = zip(*[(t, t.name) for t in ts.tracks if t.cov==0.5])
+        t05, t05_names = zip(*[(t, t.name) for t in ts.tracks if t.cov == 0.5])
         t05 = list(t05)
         t05_names = list(t05_names)
         for t in ts.tracks:
             if t.cov == 0.5:
-                outstr.append(fmt % (t.cov, t.Z, t.mass, t.ageMSTO, t.rMSTO, t.tH,
-                              t.ageTRGB, t.rTRGB, t.tHe))
+                outstr.append(fmt % (t.cov, t.Z, t.mass, t.ageMSTO, t.rMSTO,
+                                     t.tH, t.ageTRGB, t.rTRGB, t.tHe))
                 continue
             ind = t05_names.index(t.name)
             dageMSTO = rel_diff(t05[ind], t, 'ageMSTO')
@@ -441,12 +445,10 @@ def eep_summary_table(tracks, outfmt='latex', isort='mass', diff_table=False):
             dtHe = rel_diff(t05[ind], t, 'tHe')
             outstr.append(fmt2 % (t.cov, t.Z, t.mass, dageMSTO, drMSTO, dtH,
                                   dageTRGB, drTRGB, dtHe))
-
-
     return outstr
 
 
 if __name__ == "__main__":
-    #import pdb; pdb.set_trace()
-    #cov_testgrid_plots()
+    # import pdb; pdb.set_trace()
+    # cov_testgrid_plots()
     match_diagnostic_plots()

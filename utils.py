@@ -31,4 +31,3 @@ def center_from_simbad(target):
     radec = SkyCoord(ra=sstr(qry['RA']), dec=sstr(qry['DEC']),
                      unit=(u.hourangle, u.deg))
     return radec.ra.value, radec.dec.value
-

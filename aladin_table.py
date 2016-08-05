@@ -43,7 +43,7 @@ def polygon_line(name, polygon_array, color='#ee2345', lw=3):
         line = polygon_array[i]
         if line is np.nan or len(line) == 0:
             continue
-        line = line.replace('\'','')
+        line = line.replace('\'', '')
         # LAZY: could use astropy to convert coord systems
         repd = {'J2000 ': '', 'GSC1 ': '', 'ICRS ': '', 'OTHER': ''}
         poly_line = replace_all(line, repd).split('POLYGON ')[1:]
@@ -54,7 +54,7 @@ def polygon_line(name, polygon_array, color='#ee2345', lw=3):
         elif len(poly_line) == 1:
             coords = grab_coors(poly_line[0].split())
             poly_str.append('A.polygon([{}])'.format(coords))
-            
+
 
     polygons = ', '.join(poly_str)
 
