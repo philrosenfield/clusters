@@ -36,7 +36,7 @@ for i in range(len(cols)):
 fig, axs = plt.subplots(nrows=3, ncols=3)
 for i, j in itertools.product(range(3), range(3)):
         if i == j:
-            pass
+            continue
         else:
             pcolor_(data[cols[j]], data[cols[i]], data['fit'], ax=axs[i, j])
             axs[i, j].set_xlabel(cols[j])
