@@ -1,18 +1,23 @@
+from __future__ import print_function
+import os
+import sys
 import argparse
-import palettable
-from astropy.io import fits
-import ResolvedStellarPops as rsp
 import matplotlib
 import matplotlib.pylab as plt
 import numpy as np
-import sys
-import os
+import pandas as pd
 
-from bokeh.plotting import ColumnDataSource, figure, gridplot, output_file, show
-from bokeh.embed import file_html, components
+from astropy.io import fits
+from bokeh.plotting import ColumnDataSource, figure, gridplot
+from bokeh.embed import file_html
 from bokeh.resources import CDN
 from bokeh.models import Range1d
-from pandas import *
+
+import seaborn as sns
+
+from match.scripts.utils import parse_pipeline
+
+FIGEXT = '.pdf'
 
 
 def bplot_cmd_xy(obs, filter1, filter2, xyfile=None):
@@ -27,11 +32,11 @@ def bplot_cmd_xy(obs, filter1, filter2, xyfile=None):
 
     data = np.column_stack((color[good], mag[good], x[good], y[good]))
 
-    df = DataFrame(data, columns=['color', 'mag2', 'x', 'y'])
-    source  = ColumnDataSource(df)
+    df = pd.DataFrame(data, columns=['color', 'mag2', 'x', 'y'])
+    source = ColumnDataSource(df)
 
-    TOOLS = "pan,wheel_zoom,box_zoom,box_select,lasso_select,reset,save"
-    plot_config = dict(plot_width=500, plot_height=500, tools=TOOLS)
+    tools = "pan,wheel_zoom,box_zoom,box_select,lasso_select,reset,save"
+    plot_config = dict(plot_width=500, plot_height=500, tools=tools)
     cs = ['#8C3B49', '#212053']
 
     p1 = figure(title=title, **plot_config)
@@ -52,7 +57,7 @@ def bplot_cmd_xy(obs, filter1, filter2, xyfile=None):
     with open(outfile, 'w') as f:
         f.write(html)
     print('wrote {}'.format(outfile))
-    #script, div = components(p)
+    # script, div = components(p)
 
 
 def replace_all(text, dic):
@@ -61,28 +66,27 @@ def replace_all(text, dic):
         text = text.replace(old, new)
     return text
 
+
 def _plot_cmd(color, mag, color_err=None, mag_err=None, inds=None, ax=None,
-              scatter=False):
+              scatter=False, plt_kw=None, ast=None, comp=0.5):
     '''plot a cmd with errors'''
     if inds is None:
         inds = np.arange(len(mag))
 
     if ax is None:
-        fig, ax = plt.subplots(figsize=(12,12))
-    if not scatter:
-        ax.plot(color[inds], mag[inds], '.', color='black', ms=3)
-        if not None in [color_err, mag_err]:
-            ax.errorbar(color[inds], mag[inds], fmt='none', xerr=color_err[inds],
-                        yerr=mag_err[inds], capsize=0, ecolor='gray')
-    else:
-        if not None in [color_err, mag_err]:
-            color_err = color_err[inds]
-            mag_err = mag_err[inds]
-        ax = rsp.graphics.plotting.scatter_contour(color[inds], mag[inds],
-                levels=5, bins=200, threshold=400, log_counts=False,
-                plot_args={'edgecolors': 'none', 'color': 'k',
-                           'marker': 'o', 's': 3}, ax=ax, xerr=color_err,
-                yerr=mag_err)
+        _, ax = plt.subplots(figsize=(12, 12))
+    plt_kw = plt_kw or {}
+    default = {'color': 'black', 'ms': 3}
+    default.update(plt_kw)
+    ax.plot(color[inds], mag[inds], 'o', **default)
+    if None not in [color_err, mag_err]:
+        ax.errorbar(color[inds], mag[inds], fmt='none',
+                    xerr=color_err[inds], yerr=mag_err[inds],
+                    capsize=0, ecolor='gray')
+    if ast is not None:
+        ast.completeness(combined_filters=True, interpolate=True)
+        comp1, comp2 = ast.get_completeness_fraction(comp)
+        
     return ax
 
 
@@ -99,7 +103,6 @@ def add_inset(ax0, extent, xlims, ylims):
 
 
 def load_obs(filename, filter1, filter2, xyfile=None, fextra='VEGA'):
-    gal = rsp.StarPop()
     if xyfile is not None:
         _, _, x, y = np.loadtxt(xyfile, unpack=True)
     else:
@@ -108,48 +111,66 @@ def load_obs(filename, filter1, filter2, xyfile=None, fextra='VEGA'):
 
     if filename.endswith('fits'):
         try:
-            gal.data = fits.getdata(filename)
+            data = fits.getdata(filename)
             keyfmt = '{}_{}'
             errfmt = '{}_ERR'
             mag = gal.data[keyfmt.format(filter2, fextra)]
             mag1 = gal.data[keyfmt.format(filter1, fextra)]
             color = mag1 - mag
             mag_err = gal.data[errfmt.format(filter2)]
-            color_err = np.sqrt(gal.data[errfmt.format(filter1)] ** 2 + mag_err ** 2)
+            color_err = \
+                np.sqrt(gal.data[errfmt.format(filter1)] ** 2 + mag_err ** 2)
             x = gal.data.X
             y = gal.data.Y
-        except ValueError, e:
-            print('Problem with {}: {}'.format(filename, e))
+        except ValueError:
+            print('Problem with {}'.format(filename))
             return None, None
-    else:
+    elif filename.endswith('match'):
         mag1, mag2 = np.genfromtxt(filename, unpack=True)
         color = mag1 - mag2
         mag = mag2
         mag_err = None
         color_err = None
+    elif filename.endswith('dat'):
+        try:
+            _, x, y, mag, mag_err, color, color_err, _, _ = \
+                np.loadtxt(filename, unpack=True)
+        except:
+            print("Can't understand file format {}".format(filename))
+            return None, None
+    else:
+        _, x, y, mag, mag_err, color, color_err = \
+            np.loadtxt(filename, unpack=True)
 
     good, = np.nonzero((np.abs(color) < 30) & (np.abs(mag) < 30))
     return color, mag, color_err, mag_err, good, x, y
 
+
 def cmd(obs, filter1, filter2, inset=False, scatter=False,
-        xyfile=None):
+        xy=True, fig=None, axs=None, plt_kw=None):
     '''
     plot cmd of data, two insets are hard coded.
     '''
-    color, mag, color_err, mag_err, good, x, y = load_obs(obs, filter1,
-                                                          filter2, xyfile=xyfile)
+    color, mag, color_err, mag_err, good, x, y = \
+        load_obs(obs, filter1, filter2)
 
-    if len(x) == 0:
-        fig, ax = plt.subplots(figsize=(12, 12))
+    if axs is None:
+        if not xy:
+            fig, ax = plt.subplots(figsize=(12, 12))
+        else:
+            fig, (ax, axxy) = plt.subplots(ncols=2, figsize=(16, 8))
     else:
-        fig, (ax, axxy) = plt.subplots(ncols=2, figsize=(16, 8))
+        if xy:
+            ax, axxy = axs
+        else:
+            ax = axs
 
     ax = _plot_cmd(color, mag, color_err=color_err, mag_err=mag_err, inds=good,
-                   ax=ax, scatter=scatter)
+                   ax=ax, scatter=scatter, plt_kw=plt_kw)
 
     plt.tick_params(labelsize=18)
-    ax.set_ylabel(r'${}$'.format(filter2), fontsize=24)
-    ax.set_xlabel(r'${}-{}$'.format(filter1, filter2), fontsize=24)
+    ax.set_ylabel(r'${}$'.format(filter2))
+    ax.set_xlabel(r'${}-{}$'.format(filter1, filter2))
 
     if filter1 == "F160W" or filter1 == "F110W":
         ax.set_ylim(28., 14)
@@ -169,22 +190,36 @@ def cmd(obs, filter1, filter2, inset=False, scatter=False,
                         inds=good, ax=ax2)
         axs.extend([ax1, ax2])
 
-    if len(x) > 0:
-        axxy.plot(x[good], y[good],  '.', color='black', ms=3)
-        axxy.set_ylabel(r'$Y$', fontsize=24)
-        axxy.set_xlabel(r'$X$', fontsize=24)
+    if xy:
+        plt_kw = plt_kw or {}
+        default = {'color': 'k', 'ms': 3}
+        default.update(plt_kw)
+        axxy.scatter(x[good], y[good], s=star_size(mag[good]))
+        axxy.set_ylabel(r'$\alpha \rm{(deg)}$')
+        axxy.set_xlabel(r'$\delta \rm{(deg)}$')
         axs.append(axxy)
 
     return fig, axs
 
+def star_size(mag_data):
+    '''
+    Convert magnitudes into intensities and define sizes of stars in
+    finding chart.
+    '''
+    # Scale factor.
+    factor = 500. * (1 - 1 / (1 + 150 / len(mag_data) ** 0.85))
+    return 0.1 + factor * 10 ** ((np.array(mag_data) - min(mag_data)) / -2.5)
 
-def overplot_iso(data):
-    data = np.genfromtxt('/Users/phil/Downloads/output113116546142.dat')
-    fig, axs = data_plots.cmd('../10396_NGC419-HRC.gst.fits', 'F555W_VEGA', 'F814W_VEGA', True)
-    mag2 = rsp.astronomy_utils.Mag2mag(data.T[21], 'F814W', 'acs_hrc', dmod=dmod, Av=av)
-    mag1 = rsp.astronomy_utils.Mag2mag(data.T[15], 'F555W', 'acs_hrc', dmod=dmod, Av=av)
-    icolor = mag1-mag2
-    [ax.plot(icolor, mag2, '.', alpha=0.5, color='blue') for ax in axs]
+# def overplot_iso(data):
+#     data = np.genfromtxt('/Users/phil/Downloads/output113116546142.dat')
+#     fig, axs = data_plots.cmd('../10396_NGC419-HRC.gst.fits', 'F555W_VEGA',
+#                               'F814W_VEGA', True)
+#     mag2 = rsp.astronomy_utils.Mag2mag(data.T[21], 'F814W', 'acs_hrc',
+#                                         dmod=dmod, Av=av)
+#     mag1 = rsp.astronomy_utils.Mag2mag(data.T[15], 'F555W', 'acs_hrc',
+#                                          dmod=dmod, Av=av)
+#     icolor = mag1-mag2
+#     [ax.plot(icolor, mag2, '.', alpha=0.5, color='blue') for ax in axs]
 
 
 def unique_inds(arr):
@@ -195,16 +230,16 @@ def unique_inds(arr):
 
 
 def plot_isochrone_grid(iso_files, ax_by='age'):
-    isos = [rsp.fileio.readfile(i, col_key_line=1) for i in iso_files]
+    isos = [fileio.readfile(i, col_key_line=1) for i in iso_files]
     fnames = [i.split('/')[-1].replace('.dat', '') for i in iso_files]
 
-    ovs = np.array([i.split('_')[2].replace('OV','') for i in fnames],
+    ovs = np.array([i.split('_')[2].replace('OV', '') for i in fnames],
                    dtype=float)
     un_ovs, iovs = unique_inds(ovs)
     ovstr = r'$\Lambda_c=%.1f$'
 
-    ages = np.array([i.split('_')[3].replace('age','') for i in fnames],
-                     dtype=float)
+    ages = np.array([i.split('_')[3].replace('age', '') for i in fnames],
+                    dtype=float)
     un_ages, iages = unique_inds(ages)
     agestr = r'$\log Age=%.1f$'
 
@@ -231,40 +266,45 @@ def plot_isochrone_grid(iso_files, ax_by='age'):
                             sharey=True)
     fig.subplots_adjust(left=0.05, right=0.95, top=0.95, wspace=0.08)
 
-    #colors = brewer2mpl.get_map('RdYlBu', 'Diverging', 5).mpl_colors
-    colors = rsp.graphics.discrete_colors(len(labs))
-    #colors = ['red', 'black', 'blue', 'orange', 'green']
+    colors = brewer2mpl.get_map('RdYlBu', 'Diverging', 5).mpl_colors
+    # colors = rsp.graphics.discrete_colors(len(labs))
+    # colors = ['red', 'black', 'blue', 'orange', 'green']
 
     # plot the isochrones, each panel at one age, colored by cov
     for i, iso in enumerate(isos):
         axs[iax[i]].plot(iso['logTe'], iso['logLLo'], color=colors[icols[i]],
-                           alpha=0.5)
+                         alpha=0.5)
 
     # fake the legend
     [axs[ileg].plot(-99, -99, color=colors[i], lw=3, alpha=0.3,
-                  label=labfmt % labs[i]) for i in range(len(labs))]
-    axs[ileg].legend(loc=2, fontsize=16)
+                    label=labfmt % labs[i]) for i in range(len(labs))]
+    axs[ileg].legend(loc=2)
 
     for i, ax in enumerate(axs):
-        ax.set_xlabel(r'$\log T_{\rm eff}\ (K)$', fontsize=20)
+        ax.set_xlabel(r'$\log T_{\rm eff}\ (K)$')
         ax.grid(color='k')
-        ax.annotate(annfmt % anns[i], (3.80, 0.7), fontsize=20)
+        ax.annotate(annfmt % anns[i], (3.80, 0.7))
     axs[0].set_ylim(0.6, 2.2)
     axs[0].set_xlim(4.02, 3.65)
-    axs[0].set_ylabel(r'$\log L\ (L_\odot)$', fontsize=20)
+    axs[0].set_ylabel(r'$\log L\ (L_\odot)$')
+
+
+def get_filters(fitsfile):
+    h = fits.getheader(fitsfile)
+    return [h for h in h['filters'].split(',') if len(h) > 0]
 
 
 def main(argv):
     parser = argparse.ArgumentParser(description="Plot CMD")
 
-    parser.add_argument('-o', '--outfile', type=str, default=None,
+    parser.add_argument('--outfile', type=str, default=None,
                         help='output image to write to ([obs].png)')
 
-    parser.add_argument('-b', '--bokeh',  action='store_true',
+    parser.add_argument('-b', '--bokeh', action='store_true',
                         help='make bokeh tables')
 
-    parser.add_argument('-p', '--png',  action='store_true',
-                        help='make pngs')
+    parser.add_argument('-p', '--png', action='store_true',
+                        help='make FIGEXT')
 
     parser.add_argument('-y', '--yfilter', type=str, default='I',
                         help='V or I to plot on yaxis (I)')
@@ -273,25 +313,33 @@ def main(argv):
                         help='xyfile to plot (read in obs)')
 
     parser.add_argument('-f', '--filters', type=str, default=None,
-                        help='comma separated filter list. (read from obs filename)')
+                        help='comma separated filter list. (from filename)')
 
     parser.add_argument('-s', '--scatter', action='store_true',
                         help='make a scatter contour plot')
 
-    parser.add_argument('-c', '--clobber', action='store_true',
+    parser.add_argument('--clobber', action='store_true',
                         help='overwrite outfile if exists')
+
+    parser.add_argument('--pdb', action='store_true',
+                        help='invoke pdb')
 
     parser.add_argument('obs', type=str, nargs='*',
                         help='data file to make CMD')
 
-
     args = parser.parse_args(argv)
+    if args.pdb:
+        import pdb
+        pdb.set_trace()
+
     for obs in args.obs:
         if args.filters is not None:
             filters = args.filters.split(',')
         else:
-            _, filters = rsp.asts.parse_pipeline(obs)
+            _, filters = parse_pipeline(obs)
         if len(filters) == 1:
+            if obs.endswith('.fits'):
+                filters = get_filters(obs)
             print('Error only one filter {}.'.format(obs))
             print('perhaps see .pipeline_filenames.main()')
             continue
@@ -310,19 +358,20 @@ def main(argv):
             # or if there are more than 2 filters, the two plotted .png
             outfile = args.outfile
             if outfile is None:
-                outfile = obs + '.png'
+                outfile = obs + FIGEXT
                 if len(filters) > 1:
                     # take out the filters not being plotted
                     try:
                         notfs = [f for f in filters if filter1 not in f]
                         outfile = replace_all(obs + '.png',
-                                              dict(zip(notfs, ['']*len(notfs))))
+                                              dict(zip(notfs,
+                                                       ['']*len(notfs))))
                         # ^ leaves _-F336W-F814W or F110W----F814W so:
-                        uch = {'--': '-'}
-                        outfile = replace_all(replace_all(outfile, uch),
-                                              uch).replace('_-', '_').replace('-_', '_')
-                    except ValueError, e:
-                        print('{}: {}'.format(e, filters))
+                        uch = {'--': '-', '_-': '_', '-_': '_'}
+                        outfile = replace_all(
+                            replace_all(replace_all(outfile, uch), uch), uch)
+                    except ValueError:
+                        raise
                         return
 
             if args.bokeh:
@@ -333,12 +382,17 @@ def main(argv):
                     print('not overwriting {}'.format(outfile))
                     continue
 
-                fig, axs = cmd(obs, filter1, filter2, inset=False,
-                               scatter=args.scatter, xyfile=args.xyfile)
+                _, axs = cmd(obs, filter1, filter2, inset=False,
+                             scatter=args.scatter, xyfile=args.xyfile)
                 if axs is not None:
                     plt.savefig(outfile)
-                    print 'wrote {}'.format(outfile)
+                    print('wrote {}'.format(outfile))
                     plt.close()
 
 if __name__ == '__main__':
+    sns.set_context('paper', font_scale=2)
+    sns.set_style('whitegrid')
+    sd = sns.axes_style()
+    sd['text.usetex'] = True
+    sns.set(sd)
     main(sys.argv[1:])

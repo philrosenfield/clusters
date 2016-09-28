@@ -271,7 +271,7 @@ def fix_overlaps(fname='not_overlapping.csv', test_file=False):
             #print(data['filename'].iloc[gidx])
             newdir = '-'.join([paths[i], order[j]])
             line += 'mkdir {}\n'.format(newdir)
-            line += 'mv {} {}\n'.format(' '.join(data['filename'].iloc[gidx]), newdir))
+            line += 'mv {} {}\n'.format(' '.join(data['filename'].iloc[gidx]), newdir)
             if test_file:
                 newfnames = [os.path.join(newdir, os.path.split(d)[1])
                              for d in data['filename'].iloc[gidx]]

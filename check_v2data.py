@@ -6,6 +6,7 @@ from match.scripts import graphics
 import sys
 import os
 
+
 def stellar_prob(obs, mod, normalize=False):
     '''
     FROM MATCH README

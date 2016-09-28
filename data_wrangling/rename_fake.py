@@ -16,7 +16,9 @@ if not os.path.isdir('unmatched'):
 nfs = []
 # First rename the fake files
 for i, f in enumerate(fake):
-    newfake = f.replace('.gst', '').replace('.fake.dat', '.gst.matchfake').replace('W_F', 'W-F')
+    newfake = f.replace('.gst', '').replace('.fake.dat',
+                                            '.gst.matchfake').replace('W_F',
+                                                                      'W-F')
     line += 'mv {} {}\n'.format(f, newfake)
     nfs.append(newfake)
 
@@ -32,4 +34,3 @@ for p in phot:
 
 with open('rename_fake.sh', 'w') as outp:
     outp.write(line)
-    
