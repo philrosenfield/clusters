@@ -1,5 +1,5 @@
 """
-Write a script to rename Cliff's fake output format to 
+Write a script to rename Cliff's fake output format to
 PID_TARGET_filters.extensions
 """
 import os
@@ -7,7 +7,7 @@ import glob
 
 phot = glob.glob('*.match')
 fake = glob.glob('*fake.dat')
-
+extra = ['_memb', '_uvis']
 line = ''
 # housing for phot files that do not have ASTs
 if not os.path.isdir('unmatched'):
@@ -21,7 +21,7 @@ for i, f in enumerate(fake):
     nfs.append(newfake)
 
 for p in phot:
-    f = [a for a in nfs if a.replace('fake', '') in p]
+    f = [a for a in nfs if a.replace('fake', '') in p.replace(extra[0], '').replace(extra[1], '')]
     pid = p.split('_')[0]
     if len(f) > 0:
         # phot and fake file
@@ -32,3 +32,4 @@ for p in phot:
 
 with open('rename_fake.sh', 'w') as outp:
     outp.write(line)
+    
