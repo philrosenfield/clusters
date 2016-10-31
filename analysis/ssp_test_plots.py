@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 import matplotlib.pyplot as plt
@@ -118,8 +119,8 @@ def cluster_result_plots(sspfns):
     bfs['name'] = targs
     tab = Table.from_pandas(bfs)
     tab.write('best_clusters.tex')
-    sspfnsb = [s.replace('.csv', '_best.csv') for s in sspfns]
-    interp_for_ov(sspfnsb)
+    # sspfnsb = [s.replace('.csv', '_best.csv') for s in sspfns]
+    # interp_for_ov(sspfnsb)
 
 
 def marg_plots(ssps, marg_cols, text=None, truth=None, fignames=None):
@@ -141,11 +142,28 @@ def marg_plots(ssps, marg_cols, text=None, truth=None, fignames=None):
         plt.savefig(fignames[i])
         figs.append(fig)
         axss.append(axs)
-        bfs = bfs.append(ssp.data.loc[ssp.ibest], ignore_index=True)
+        # bfs = bfs.append(ssp.data.loc[ssp.ibest], ignore_index=True)
     return figs, axss, bfs
 
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Corner plots for a calcsfh run")
+
+    parser.add_argument('-t', '--test', action='store_true',
+                        help='ssp test')
+
+    parser.add_argument('-i', '--interp', action='store_true',
+                        help='interpolate OV')
+
+    parser.add_argument('filename', type=str, nargs='*', help='csv file(s)')
+
+    args = parser.parse_args(argv)
+
+    if args.test:
+        ssp_test(args.filename)
+    else:
+        cluster_result_plots(args.filename)
+        if args.interp:
+            interp_for_ov(args.filename)
+
 if __name__ == "__main__":
-    # os.chdir('/Users/rosenfield/research/clusters/asteca/acs_wfc3/paper1')
-    ssp_test(sys.argv[1:])
-    #cluster_result_plots(sys.argv[1:])
-    interp_for_ov(sys.argv[1:])
+    sys.exit(main())

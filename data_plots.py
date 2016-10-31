@@ -21,6 +21,9 @@ FIGEXT = '.pdf'
 
 
 def bplot_cmd_xy(obs, filter1, filter2, xyfile=None):
+    """
+    2 panel bokeh plot
+    """
     color, mag, _, _, good, x, y = load_obs(obs, filter1, filter2,
                                             xyfile=xyfile)
 
@@ -68,36 +71,35 @@ def replace_all(text, dic):
 
 
 def _plot_cmd(color, mag, color_err=None, mag_err=None, inds=None, ax=None,
-              scatter=False, plt_kw=None, ast=None, comp=0.5):
+              plt_kw=None):
     '''plot a cmd with errors'''
     if inds is None:
         inds = np.arange(len(mag))
 
     if ax is None:
         _, ax = plt.subplots(figsize=(12, 12))
+
     plt_kw = plt_kw or {}
     default = {'color': 'black', 'ms': 3}
     default.update(plt_kw)
+
     ax.plot(color[inds], mag[inds], 'o', **default)
-    if None not in [color_err, mag_err]:
+
+    if color_err is not None and mag_err is not None:
         ax.errorbar(color[inds], mag[inds], fmt='none',
                     xerr=color_err[inds], yerr=mag_err[inds],
                     capsize=0, ecolor='gray')
-    if ast is not None:
-        ast.completeness(combined_filters=True, interpolate=True)
-        comp1, comp2 = ast.get_completeness_fraction(comp)
-        
+
     return ax
 
 
-def add_inset(ax0, extent, xlims, ylims):
+def add_inset(ax0, extent, xlim, ylim):
     '''add an inset axes to the plot and a rectangle on the main plot'''
     ax = plt.axes(extent)
-    ax.set_xlim(xlims)
-    ax.set_ylim(ylims[::-1])
-    rect = matplotlib.patches.Rectangle((xlims[0], ylims[0]),
-                                        np.diff(xlims), np.diff(ylims),
-                                        fill=False, color='k')
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim[::-1])
+    rect = plt.Rectangle((xlim[0], ylim[0]), np.diff(xlim), np.diff(ylim),
+                         fill=False, color='k')
     ax0.add_patch(rect)
     return ax
 
@@ -128,7 +130,7 @@ def load_obs(filename, filter1, filter2, xyfile=None, fextra='VEGA'):
     elif filename.endswith('match'):
         mag1, mag2 = np.genfromtxt(filename, unpack=True)
         color = mag1 - mag2
-        mag = mag2
+        mag = mag1
         mag_err = None
         color_err = None
     elif filename.endswith('dat'):
@@ -146,49 +148,113 @@ def load_obs(filename, filter1, filter2, xyfile=None, fextra='VEGA'):
     return color, mag, color_err, mag_err, good, x, y
 
 
-def cmd(obs, filter1, filter2, inset=False, scatter=False,
-        xy=True, fig=None, axs=None, plt_kw=None):
+def add_rect(ax, xlim, ylim, kw=None):
+    default = {'fill': False, 'color': 'grey', 'lw': 2, 'zorder': 1000}
+    kw = kw or {}
+    default.update(kw)
+    rect = plt.Rectangle((xlim[0], ylim[0]), np.diff(xlim), np.diff(ylim),
+                         **default)
+    ax.add_patch(rect)
+    return
+
+def setup_zoomgrid():
+    fig = plt.figure(figsize=(8, 6.5))
+    # cmd grid is one square taking up 4 of the 6 axes
+    ax = plt.subplot2grid((2,3), (0,0), rowspan=2, colspan=2)
+    # for HB probably
+    ax2 = plt.subplot2grid((2,3), (0,2))
+    # for MSTO probably
+    ax3 = plt.subplot2grid((2,3), (1,2))
+
+    plt.subplots_adjust(wspace=0.15, right=0.88)
+    ax.tick_params(right=False, top=False)
+    for ax_ in [ax2, ax3]:
+        ax_.tick_params(labelright=True, labelleft=False,
+                        left=False, top=False)
+    return fig, (ax, ax2, ax3)
+
+
+def adjust_zoomgrid(ax, ax2, ax3, zoom1_kw=None, zoom2_kw=None):
+    """
+    zoom grid is just a fancy call to set_[x,y]lim and plot a
+    rectangle.
+    """
+    default1 = {'xlim': [0.5, 1.],
+                'ylim': [19.6, 21.7]}
+    default2 = {'xlim': [0.85, 1.1],
+                'ylim': [18.2, 19.2]}
+    zoom1_kw = zoom1_kw or default1
+    zoom2_kw = zoom2_kw or default2
+    add_rect(ax, **zoom1_kw)
+    add_rect(ax, **zoom2_kw)
+    ax2.set_xlim(zoom1_kw['xlim'])
+    ax2.set_ylim(np.sort(zoom1_kw['ylim'])[::-1])
+    ax3.set_xlim(zoom2_kw['xlim'])
+    ax3.set_ylim(np.sort(zoom2_kw['ylim'])[::-1])
+    for ax_ in [ax2, ax3]:
+        ax_.locator_params(axis='x', nbins=4)
+        ax_.locator_params(axis='y', nbins=6)
+    return [ax, ax2, ax3]
+
+
+def cmd_axeslimits(filter1, xlim=None, ylim=None):
+    """
+    default cmd limits for IR or optical
+    """
+    if xlim is None:
+        if filter1 == "F160W" or filter1 == "F110W":
+            xlim = [-5, 2]
+        else:
+            xlim = [-0.5, 4]
+    if ylim is None:
+        if filter1 == "F160W" or filter1 == "F110W":
+            ylim = [28., 14]
+        else:
+            ylim = [26., 14]
+    return xlim, ylim
+
+
+def cmd(obs, filter1, filter2, zoom=False, scatter=False, xlim=None, ylim=None,
+        xy=True, fig=None, axs=None, plt_kw=None, zoom1_kw=None, zoom2_kw=None):
     '''
     plot cmd of data, two insets are hard coded.
     '''
+    plt_kw = plt_kw or {}
     color, mag, color_err, mag_err, good, x, y = \
         load_obs(obs, filter1, filter2)
 
     if axs is None:
         if not xy:
-            fig, ax = plt.subplots(figsize=(12, 12))
+            if zoom:
+                fig, (ax, ax2, ax3) = setup_zoomgrid()
+            else:
+                fig, ax = plt.subplots(figsize=(12, 12))
         else:
             fig, (ax, axxy) = plt.subplots(ncols=2, figsize=(16, 8))
     else:
         if xy:
             ax, axxy = axs
+        elif zoom:
+            ax, ax2, ax3 = axs
         else:
             ax = axs
 
     ax = _plot_cmd(color, mag, color_err=color_err, mag_err=mag_err, inds=good,
-                   ax=ax, scatter=scatter, plt_kw=plt_kw)
+                   ax=ax, plt_kw=plt_kw)
 
-    plt.tick_params(labelsize=18)
-    ax.set_ylabel(r'${}$'.format(filter2))
+    ax.set_ylabel(r'${}$'.format(filter1))
     ax.set_xlabel(r'${}-{}$'.format(filter1, filter2))
-
-    if filter1 == "F160W" or filter1 == "F110W":
-        ax.set_ylim(28., 14)
-        ax.set_xlim(-5, 2)
-    else:
-        ax.set_ylim(26., 14)
-        ax.set_xlim(-0.5, 4)
-
+    xlim, ylim = cmd_axeslimits(filter1, xlim=xlim, ylim=ylim)
+    ax.set_xlim(xlim)
+    ax.set_ylim(np.sort(ylim)[::-1])
     axs = [ax]
 
-    if inset:
-        ax1 = add_inset(ax, [0.45, 0.45, 0.42, 0.3], [0., 0.6], [19.6, 21.7])
-        ax1 = _plot_cmd(color, mag, color_err=color_err, mag_err=mag_err,
-                        inds=good, ax=ax1)
-        ax2 = add_inset(ax, [0.18, 0.74, .19, .15], [0.85, 1.1], [18.2, 19.2])
+    if zoom:
         ax2 = _plot_cmd(color, mag, color_err=color_err, mag_err=mag_err,
-                        inds=good, ax=ax2)
-        axs.extend([ax1, ax2])
+                        inds=good, ax=ax2, plt_kw=plt_kw)
+        ax3 = _plot_cmd(color, mag, color_err=color_err, mag_err=mag_err,
+                        inds=good, ax=ax3, plt_kw=plt_kw)
+        axs = adjust_zoomgrid(ax, ax2, ax3, zoom1_kw=zoom1_kw, zoom2_kw=zoom2_kw)
 
     if xy:
         plt_kw = plt_kw or {}
@@ -201,7 +267,9 @@ def cmd(obs, filter1, filter2, inset=False, scatter=False,
 
     return fig, axs
 
+
 def star_size(mag_data):
+
     '''
     Convert magnitudes into intensities and define sizes of stars in
     finding chart.
