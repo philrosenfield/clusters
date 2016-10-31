@@ -38,7 +38,7 @@ def cmd_plots():
              '12257_NGC2213_F475W-F814W_uvis.gst',
              '12257_NGC1718_F475W-F814W_uvis.gst',
              '12257_NGC2173_F475W-F814W_uvis.gst',
-             '12257_HODGE6_F475W-F814W_uvis.gst',
+             # '12257_HODGE6_F475W-F814W_uvis.gst',
              '9891_NGC1978_F555W-F814W.gst']
     sns.set_context('paper', font_scale=3)
     for pref in prefs:
@@ -124,4 +124,4 @@ if __name__ == "__main__":
     sns.set_style('ticks')
 
     cmd_plots()
-    make_fake_plots()
+    # make_fake_plots()

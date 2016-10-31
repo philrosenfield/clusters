@@ -5,13 +5,13 @@ import sys
 import pandas as pd
 from astropy.table import Table
 import string
-allTheLetters = string.lowercase
+allTheLetters = string.ascii_lowercase
 
 def replace_all(text, dic):
     """perfrom text.replace(key, value) for all keys and values in dic"""
     if text is None:
         return text
-    for old, new in dic.iteritems():
+    for old, new in dic.items():
         text = text.replace(old, new)
     return text
 

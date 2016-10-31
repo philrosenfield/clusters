@@ -86,7 +86,7 @@ def _plot_cmd(color, mag, color_err=None, mag_err=None, inds=None, ax=None,
     if ast is not None:
         ast.completeness(combined_filters=True, interpolate=True)
         comp1, comp2 = ast.get_completeness_fraction(comp)
-        
+
     return ax
 
 
@@ -128,7 +128,7 @@ def load_obs(filename, filter1, filter2, xyfile=None, fextra='VEGA'):
     elif filename.endswith('match'):
         mag1, mag2 = np.genfromtxt(filename, unpack=True)
         color = mag1 - mag2
-        mag = mag2
+        mag = mag1
         mag_err = None
         color_err = None
     elif filename.endswith('dat'):
