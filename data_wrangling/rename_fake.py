@@ -7,7 +7,7 @@ import glob
 
 phot = glob.glob('*.match')
 fake = glob.glob('*fake.dat')
-extra = '_memb'
+extra = ['_memb', '_uvis']
 line = ''
 # housing for phot files that do not have ASTs
 if not os.path.isdir('unmatched'):
@@ -23,7 +23,7 @@ for i, f in enumerate(fake):
     nfs.append(newfake)
 
 for p in phot:
-    f = [a for a in nfs if a.replace('fake', '').replace(extra, '') in p]
+    f = [a for a in nfs if a.replace('fake', '') in p.replace(extra[0], '').replace(extra[1], '')]
     pid = p.split('_')[0]
     if len(f) > 0:
         # phot and fake file

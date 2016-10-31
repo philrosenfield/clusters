@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 import matplotlib.pyplot as plt
@@ -42,7 +43,7 @@ def interp_for_ov(sspfns):
         plt.close()
 
 
-def ssp_test():
+def ssp_test(sspfn):
     # (for true9)
     truth = {'IMF': 1.30,
              'dmod': 18.50,
@@ -54,12 +55,13 @@ def ssp_test():
              'vstep': 0.1,
              'vistep': 0.05,
              'logZ': -0.50,
-             'sfr': 5e-3}  # (Msun / yr need to integrate over bin size)
+             'sfr': 5e-3,
+             'lage': 10 ** .3127}  # (Msun / yr need to integrate over bin size)
     truelage0 = 10 ** .3000  # Gyr
     truelage1 = 10 ** .3254  # Gyr
 
     ovs = [0.3, 0.4, 0.5, 0.6]
-    ssps = [SSP('ssp_test9.csv', gyr=True, filterby={'trueov': ov})
+    ssps = [SSP(sspfn[0], gyr=True, filterby={'trueov': ov})
             for ov in ovs]
 
     avoid_list = ['sfr', 'fit', 'dmag_min', 'vstep', 'vistep', 'tbin', 'ssp',
@@ -71,12 +73,12 @@ def ssp_test():
     figs, axss, bfs = marg_plots(ssps, marg_cols, truth=truth,
                                  fignames=fignames)
 
-    lage = [0, truelage0, truelage0, truelage1, truelage1, 0]
-    probage = [0, 0, 1, 1, 0, 0]
-    for i, axs in enumerate(axss):
-        axs[-1].axvline(ovs[i], color='darkred', lw=3)
-        axs[3].plot(lage, probage, color='darkred', lw=3)
-        figs[i].savefig(fignames[i])
+    #lage = [0, truelage0, truelage0, truelage1, truelage1, 0]
+    #probage = [0, 0, 1, 1, 0, 0]
+    #for i, axs in enumerate(axss):
+    #    axs[-1].axvline(ovs[i], color='darkred', lw=3)
+    #    axs[3].plot(lage, probage, color='darkred', lw=3)
+    #    figs[i].savefig(fignames[i])
     tab = Table.from_pandas(bfs)
     tab.write('best_ssptest.tex')
 
@@ -117,8 +119,8 @@ def cluster_result_plots(sspfns):
     bfs['name'] = targs
     tab = Table.from_pandas(bfs)
     tab.write('best_clusters.tex')
-    sspfnsb = [s.replace('.csv', '_best.csv') for s in sspfns]
-    interp_for_ov(sspfnsb)
+    # sspfnsb = [s.replace('.csv', '_best.csv') for s in sspfns]
+    # interp_for_ov(sspfnsb)
 
 
 def marg_plots(ssps, marg_cols, text=None, truth=None, fignames=None):
@@ -133,16 +135,35 @@ def marg_plots(ssps, marg_cols, text=None, truth=None, fignames=None):
     figs = []
     axss = []
     for i, ssp in enumerate(ssps):
+        if truth is not None:
+            truth['ov'] = np.unique(ssp.data['trueov'])
         fig, axs = ssp.pdf_plots(marginals=marg_cols, truth=truth,
-                                 text=text[i])
+                                 text=text[i], twod=True)
         plt.savefig(fignames[i])
         figs.append(fig)
         axss.append(axs)
-        bfs = bfs.append(ssp.data.loc[ssp.ibest], ignore_index=True)
+        # bfs = bfs.append(ssp.data.loc[ssp.ibest], ignore_index=True)
     return figs, axss, bfs
 
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Corner plots for a calcsfh run")
+
+    parser.add_argument('-t', '--test', action='store_true',
+                        help='ssp test')
+
+    parser.add_argument('-i', '--interp', action='store_true',
+                        help='interpolate OV')
+
+    parser.add_argument('filename', type=str, nargs='*', help='csv file(s)')
+
+    args = parser.parse_args(argv)
+
+    if args.test:
+        ssp_test(args.filename)
+    else:
+        cluster_result_plots(args.filename)
+        if args.interp:
+            interp_for_ov(args.filename)
+
 if __name__ == "__main__":
-    # os.chdir('/Users/rosenfield/research/clusters/asteca/acs_wfc3/paper1')
-    # ssp_test()
-    cluster_result_plots(sys.argv[1:])
-    interp_for_ov(sys.argv[1:])
+    sys.exit(main())
