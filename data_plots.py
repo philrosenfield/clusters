@@ -6,6 +6,7 @@ import matplotlib
 import matplotlib.pylab as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
 from astropy.io import fits
 from bokeh.plotting import ColumnDataSource, figure, gridplot
@@ -13,12 +14,12 @@ from bokeh.embed import file_html
 from bokeh.resources import CDN
 from bokeh.models import Range1d
 
-import seaborn as sns
-
+from .utils import replace_all
 from match.scripts.utils import parse_pipeline
 
 FIGEXT = '.pdf'
-
+plt.style.use('presentation')
+sns.set_style('ticks')
 
 def bplot_cmd_xy(obs, filter1, filter2, xyfile=None):
     """
@@ -61,13 +62,6 @@ def bplot_cmd_xy(obs, filter1, filter2, xyfile=None):
         f.write(html)
     print('wrote {}'.format(outfile))
     # script, div = components(p)
-
-
-def replace_all(text, dic):
-    """perfrom text.replace(key, value) for all keys and values in dic"""
-    for old, new in dic.iteritems():
-        text = text.replace(old, new)
-    return text
 
 
 def _plot_cmd(color, mag, color_err=None, mag_err=None, inds=None, ax=None,
@@ -157,6 +151,10 @@ def add_rect(ax, xlim, ylim, kw=None):
     return
 
 def setup_zoomgrid():
+    """
+    Set up a 6 panel plot, 2x2 grid is one main axes and the other 2 are
+    zoom-ins of the main axes
+    """
     fig = plt.figure(figsize=(8, 6.5))
     # cmd grid is one square taking up 4 of the 6 axes
     ax = plt.subplot2grid((2,3), (0,0), rowspan=2, colspan=2)
@@ -173,26 +171,32 @@ def setup_zoomgrid():
     return fig, (ax, ax2, ax3)
 
 
-def adjust_zoomgrid(ax, ax2, ax3, zoom1_kw=None, zoom2_kw=None):
+def adjust_zoomgrid(ax, ax2, ax3, zoom1_kw=None, zoom2_kw=None, reversey=True):
     """
     zoom grid is just a fancy call to set_[x,y]lim and plot a
     rectangle.
     """
+    def adjust(ax, axz, zoom, reversey=True):
+        add_rect(ax, **zoom)
+        axz.set_xlim(zoom['xlim'])
+        ylim = np.sort(zoom['ylim'])
+        if reversey:
+            ylim = np.sort(zoom['ylim'])[::-1]
+        axz.set_ylim(ylim)
+        return ax
+
     default1 = {'xlim': [0.5, 1.],
                 'ylim': [19.6, 21.7]}
-    default2 = {'xlim': [0.85, 1.1],
-                'ylim': [18.2, 19.2]}
     zoom1_kw = zoom1_kw or default1
-    zoom2_kw = zoom2_kw or default2
-    add_rect(ax, **zoom1_kw)
-    add_rect(ax, **zoom2_kw)
-    ax2.set_xlim(zoom1_kw['xlim'])
-    ax2.set_ylim(np.sort(zoom1_kw['ylim'])[::-1])
-    ax3.set_xlim(zoom2_kw['xlim'])
-    ax3.set_ylim(np.sort(zoom2_kw['ylim'])[::-1])
+
+    ax2 = adjust(ax, ax2, zoom1_kw, reversey=reversey)
+    if zoom2_kw is not None:
+        ax3 = adjust(ax, ax3, zoom2_kw, reversey=reversey)
+
     for ax_ in [ax2, ax3]:
         ax_.locator_params(axis='x', nbins=4)
         ax_.locator_params(axis='y', nbins=6)
+
     return [ax, ax2, ax3]
 
 
@@ -277,89 +281,6 @@ def star_size(mag_data):
     factor = 500. * (1 - 1 / (1 + 150 / len(mag_data) ** 0.85))
     return 0.1 + factor * 10 ** ((np.array(mag_data) - min(mag_data)) / -2.5)
 
-# def overplot_iso(data):
-#     data = np.genfromtxt('/Users/phil/Downloads/output113116546142.dat')
-#     fig, axs = data_plots.cmd('../10396_NGC419-HRC.gst.fits', 'F555W_VEGA',
-#                               'F814W_VEGA', True)
-#     mag2 = rsp.astronomy_utils.Mag2mag(data.T[21], 'F814W', 'acs_hrc',
-#                                         dmod=dmod, Av=av)
-#     mag1 = rsp.astronomy_utils.Mag2mag(data.T[15], 'F555W', 'acs_hrc',
-#                                          dmod=dmod, Av=av)
-#     icolor = mag1-mag2
-#     [ax.plot(icolor, mag2, '.', alpha=0.5, color='blue') for ax in axs]
-
-
-def unique_inds(arr):
-    '''return unique values and array of indicies matching the unique value'''
-    un_arr = np.unique(arr)
-    iarr = np.digitize(arr, bins=un_arr) - 1
-    return un_arr, iarr
-
-
-def plot_isochrone_grid(iso_files, ax_by='age'):
-    isos = [fileio.readfile(i, col_key_line=1) for i in iso_files]
-    fnames = [i.split('/')[-1].replace('.dat', '') for i in iso_files]
-
-    ovs = np.array([i.split('_')[2].replace('OV', '') for i in fnames],
-                   dtype=float)
-    un_ovs, iovs = unique_inds(ovs)
-    ovstr = r'$\Lambda_c=%.1f$'
-
-    ages = np.array([i.split('_')[3].replace('age', '') for i in fnames],
-                    dtype=float)
-    un_ages, iages = unique_inds(ages)
-    agestr = r'$\log Age=%.1f$'
-
-    if ax_by == 'age':
-        nax = len(un_ages)
-        iax = iages
-        icols = iovs
-        labs = un_ovs
-        labfmt = ovstr
-        anns = un_ages
-        annfmt = agestr
-        ileg = -1
-    else:
-        nax = len(un_ovs)
-        iax = iovs
-        icols = iages
-        labs = un_ages
-        labfmt = agestr
-        anns = un_ovs
-        annfmt = ovstr
-        ileg = 0
-
-    fig, axs = plt.subplots(ncols=nax, figsize=(20, 6), sharex=True,
-                            sharey=True)
-    fig.subplots_adjust(left=0.05, right=0.95, top=0.95, wspace=0.08)
-
-    colors = brewer2mpl.get_map('RdYlBu', 'Diverging', 5).mpl_colors
-    # colors = rsp.graphics.discrete_colors(len(labs))
-    # colors = ['red', 'black', 'blue', 'orange', 'green']
-
-    # plot the isochrones, each panel at one age, colored by cov
-    for i, iso in enumerate(isos):
-        axs[iax[i]].plot(iso['logTe'], iso['logLLo'], color=colors[icols[i]],
-                         alpha=0.5)
-
-    # fake the legend
-    [axs[ileg].plot(-99, -99, color=colors[i], lw=3, alpha=0.3,
-                    label=labfmt % labs[i]) for i in range(len(labs))]
-    axs[ileg].legend(loc=2)
-
-    for i, ax in enumerate(axs):
-        ax.set_xlabel(r'$\log T_{\rm eff}\ (K)$')
-        ax.grid(color='k')
-        ax.annotate(annfmt % anns[i], (3.80, 0.7))
-    axs[0].set_ylim(0.6, 2.2)
-    axs[0].set_xlim(4.02, 3.65)
-    axs[0].set_ylabel(r'$\log L\ (L_\odot)$')
-
-
-def get_filters(fitsfile):
-    h = fits.getheader(fitsfile)
-    return [h for h in h['filters'].split(',') if len(h) > 0]
-
 
 def main(argv):
     parser = argparse.ArgumentParser(description="Plot CMD")
@@ -406,7 +327,8 @@ def main(argv):
             _, filters = parse_pipeline(obs)
         if len(filters) == 1:
             if obs.endswith('.fits'):
-                filters = get_filters(obs)
+                h = fits.getheader(obs)
+                filters = [h for h in h['filters'].split(',') if len(h) > 0]
             print('Error only one filter {}.'.format(obs))
             print('perhaps see .pipeline_filenames.main()')
             continue
