@@ -4,45 +4,14 @@ import numpy as np
 import seaborn as sns
 
 from match.scripts.cmd import CMD
-from match.scripts.fileio import filename_data, get_files
-from match.scripts.graphics.graphics import zeroed_cmap, square_aspect
-from match.scripts.graphics.graphics import add_inner_title
+from match.scripts.compare_cmds import comp_cmd, diff_
+from match.scripts.fileio import get_files
+from match.scripts.graphics.graphics import square_aspect
 from match.scripts.ssp import SSP
 
 plt.style.use('presentation')
 sns.set_style('ticks')
 sns.set_context('paper', font_scale=1.5)
-
-
-def comp_cmd(cmd0, cmd, label=None):
-    extent = cmd0.extent
-    aspect = abs((extent[1] - extent[0]) / (extent[3] - extent[2]))
-
-    hess = cmd0.model - cmd.model
-    colors = zeroed_cmap(hess, transparent=True)
-    #ind = np.max([np.argmax(colors._lut.T[i])
-    #              for i in range(len(colors._lut.T)-1)])
-    #colors._lut[ind][-1] = 0
-    fig, ax = plt.subplots(figsize=(5, 4.5))
-    kw = {'extent': extent, 'origin': 'upper', 'interpolation': 'nearest',
-          'aspect': aspect}
-    ax.imshow(cmd0.data, **kw)
-    im = ax.imshow(hess, cmap=colors, alpha=0.5, **kw)
-    if label is not None:
-        add_inner_title(ax, label, loc=4)
-    cb = plt.colorbar(im)
-    cmd0.set_axis_labels(ax=ax)
-    return fig, ax
-
-
-def diff_(cmd0, cmd1, ssp=None):
-    d0 = filename_data(cmd0.name, exclude='')
-    d1 = filename_data(cmd1.name, exclude='')
-    if ssp:
-        d0.update(ssp.data.iloc[np.argmin(np.abs(ssp.data.fit - cmd0.fit))].to_dict())
-        d1.update(ssp.data.iloc[np.argmin(np.abs(ssp.data.fit - cmd1.fit))].to_dict())
-    a = {o : (d1[o], d0[o]) for o in set(d0.keys()).intersection(d1.keys()) if d0[o] != d1[o]}
-    return a
 
 
 def twobest(sstr, ssp, label=None):
@@ -122,14 +91,18 @@ def best_cmds(outdir=None):
         cmd.pgcmd(labels=labels, figname=figname, twobytwo=False)
     return
 
-best_cmds()
-res_base = '/Volumes/tehom/research/clusters/asteca/acs_wfc3/paper1/final_data/results'
-ssp1644 = SSP(os.path.join(res_base, 'NGC1644_full.csv'))
-ssp2213 = SSP(os.path.join(res_base, 'NGC2213_full.csv'))
-ssp2203 = SSP(os.path.join(res_base, 'NGC2203_full.csv'))
-ssp2173 = SSP(os.path.join(res_base, 'NGC2173_full.csv'))
-ssp1978 = SSP(os.path.join(res_base, 'NGC1978_full.csv'))
-ssp1917 = SSP(os.path.join(res_base, 'NGC1917_full.csv'))
-ssph2 = SSP(os.path.join(res_base, 'HODGE2_full.csv'))
-ssp1795 = SSP(os.path.join(res_base, 'NGC1795_full.csv'))
-interesting_plots()
+def main():
+    best_cmds()
+    res_base = '/Volumes/tehom/research/clusters/asteca/acs_wfc3/paper1/final_data/results'
+    ssp1644 = SSP(os.path.join(res_base, 'NGC1644_full.csv'))
+    ssp2213 = SSP(os.path.join(res_base, 'NGC2213_full.csv'))
+    ssp2203 = SSP(os.path.join(res_base, 'NGC2203_full.csv'))
+    ssp2173 = SSP(os.path.join(res_base, 'NGC2173_full.csv'))
+    ssp1978 = SSP(os.path.join(res_base, 'NGC1978_full.csv'))
+    ssp1917 = SSP(os.path.join(res_base, 'NGC1917_full.csv'))
+    ssph2 = SSP(os.path.join(res_base, 'HODGE2_full.csv'))
+    ssp1795 = SSP(os.path.join(res_base, 'NGC1795_full.csv'))
+    interesting_plots()
+
+if __name__ == "__main__":
+    main()

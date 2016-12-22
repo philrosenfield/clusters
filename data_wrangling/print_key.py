@@ -9,4 +9,4 @@ for f in fnames:
         hdr = fits.getheader(f)
         print('{} {} {}'.format(f, key, hdr[key]))
     except:
-	print(sys.exc_info()[1])
+        print('{} {}'.format(f, sys.exc_info()[1]))

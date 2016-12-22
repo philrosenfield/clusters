@@ -75,19 +75,19 @@ def commonnames():
        tt = Simbad.query_object(targ)
        ct = Simbad.query_region(c)
        if tt is None:
-          print 'name resolver did not find', targ, 'was', raw_target
+          print('name resolver did not find', targ, 'was', raw_target)
           ttname = 'N/D'
        else:
           ttname = tt[0]['MAIN_ID']
        if ct is None:
-          print 'coord resolver did not find', targ, 'was', raw_target
+          print('coord resolver did not find', targ, 'was', raw_target)
           ctname = 'N/D'
        else:
           ctname = ct[0]['MAIN_ID']
-       print targ, raw_target, ttname, ctname
+       print(targ, raw_target, ttname, ctname)
     for i in range(len(cmast)):
         t = Simbad.query_object(cmast['target'][i].replace('-',''))
-        print cmast['target'][i], t['MAIN_ID']
+        print(cmast['target'][i], t['MAIN_ID'])
 
 def good_ext(fnames):
     exts = ['raw', 'flt', 'flc', 'c0m', 'c1m']
