@@ -56,24 +56,35 @@ def cluster_result_plots(sspfns, oned=False, twod=False, onefig=False):
     avoid_list = ['sfr', 'fit', 'dmag_min', 'vstep', 'vistep', 'tbin', 'ssp',
                   'trueov', 'dav']
 
-    # This assures the same order on the plots
-    marg_cols = ['Av', 'IMF', 'bf', 'dmod', 'lage', 'logZ', 'ov']
+    # This assures the same order on the plots, though they are default in ssp
+    # marg_cols = ['Av', 'bf', 'dmod', 'lage', 'logZ', 'ov']
+    marg_cols = ['Av', 'bf', 'dmod', 'lage', 'logZ', 'vvcrit']
+    frompost = False
     nssps = len(sspfns)
     ndim = len(marg_cols)
     fig = None
     axs = [None] * nssps
+
     if onefig:
         fig, axs = plt.subplots(nrows=nssps, ncols=ndim,
                                 figsize=(ndim * 1.4, nssps))
+
     for i, sspfn in enumerate(sspfns):
         print(sspfn)
         if sspfn.endswith('.csv'):
-            ssp = SSP(sspfn, gyr=True)
+            # ssp = SSP(sspfn, gyr=True)
+            ssp = SSP(sspfn)
+            # ssp.gyr = False
+            # Checks for more than one unique value to marginalize over
+            # also adds unique arrays as attributes so this won't add
+            # computation time.
             ssp.check_grid(skip_cols=avoid_list)
+            # import pdb; pdb.set_trace()
         else:
             ssp = SSP()
             ssp.gyr = True
             ssp.load_posterior(sspfn)
+            frompost = True
         targ = ssp.name.split('_')[0].upper()
         label = labelfmt.format(targ)
         ylabel = labelfmt.format(targ)
@@ -82,7 +93,7 @@ def cluster_result_plots(sspfns, oned=False, twod=False, onefig=False):
 
         if oned:
             f, raxs = ssp.pdf_plots(marginals=marg_cols, text=label,
-                                    fig=fig, axs=axs[i], frompost=True)
+                                    fig=fig, axs=axs[i], frompost=frompost)
 
             if not onefig:
                 figname = sspfn.replace('.csv', '_1d.pdf')
@@ -92,7 +103,7 @@ def cluster_result_plots(sspfns, oned=False, twod=False, onefig=False):
                 raxs[-1].set_ylabel(ylabel)
                 raxs[-1].yaxis.set_label_position("right")
 
-            if not sspfn.endswith('.dat'):
+            if not frompost:
                 ssp.write_posterior(filename='{}_post.dat'.format(targ))
         if twod:
             ssp.pdf_plots(marginals=marg_cols, text=label, twod=True,
