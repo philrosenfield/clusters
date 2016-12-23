@@ -30,6 +30,7 @@ from shapely.geometry import Polygon
 
 seaborn.set()
 
+
 def parse_footprint(fname):
     """
     parse a ds9 linear footprint into a ; separated line:
@@ -38,7 +39,7 @@ def parse_footprint(fname):
     fmt = '{};{};{}'
     with open(fname) as inp:
         lines = inp.readlines()
-    #filename = fname.replace('_footprint_ds9_linear.reg', '.fits')
+    # filename = fname.replace('_footprint_ds9_linear.reg', '.fits')
     polygons = [p.strip().split('#')[0] for p in lines if 'polygon' in p]
     points = [p.split('#')[0].strip() for p in lines if 'point' in p]
     texts = [p.replace('text', 'point').split('#')[0].strip()
@@ -81,8 +82,8 @@ def simplify_footprint(fname):
         polys = np.array([Polygon(c) for c in coords])
         polys = [p for p in polys if p.is_valid is True]
         ply = polys[0]
-        for i in range(len(polys)-1):
-            ply = ply.union(polys[i+1])
+        for i in range(len(polys) - 1):
+            ply = ply.union(polys[i + 1])
         ply2 = ply.convex_hull
         ns_region = str(ply2.boundary).replace('LINESTRING ', 'polygon')
         nradec = 'point {:.6f} {:.6f}'.format(ply2.centroid.x, ply2.centroid.y)
@@ -92,7 +93,9 @@ def simplify_footprint(fname):
 
 
 def simplify_footprints(fnames):
-    """create all_poly_simp.csv made from the ds9 footprints of several files"""
+    """
+    create all_poly_simp.csv made from the ds9 footprints of several files
+    """
     line = '\n'.join([simplify_footprint(f) for f in fnames])
     with open('all_poly_simp.csv', 'w') as outp:
         outp.write(line)
@@ -115,7 +118,8 @@ def read_footprints(filename, instrument=None):
     radecs = np.array([np.array(l.strip().split('point')[1].split(),
                                 dtype=float) for l in lines])
     s_region = np.array([l.strip().split(';')[1].strip() for l in lines])
-    pids, targets = zip(*[l.split(';')[0].split('/')[0].split('_') for l in lines])
+    pids, targets = zip(
+        *[l.split(';')[0].split('/')[0].split('_') for l in lines])
 
     data['filename'] = [l.split(';')[0].replace('_footprint_ds9_linear.reg',
                                                 '.fits') for l in lines]
@@ -123,7 +127,8 @@ def read_footprints(filename, instrument=None):
     data['dec'] = radecs.T[1]
     data['target'] = list(targets)
     data['propid'] = list(pids)
-    data['image'] = [l.split(';')[0].split('/')[-1].split('_')[0] for l in lines]
+    data['image'] = [l.split(';')[0].split(
+        '/')[-1].split('_')[0] for l in lines]
     data['instrument'] = instrument
     if instrument is None:
         data['instrument'] = [l.split(';')[0].split('/')[0] for l in radecs]
@@ -132,7 +137,9 @@ def read_footprints(filename, instrument=None):
 
 
 def parse_poly(line, closed=True, return_string=False):
-    """Convert a polygon into N,2 np array. If closed, repeat first coords at end."""
+    """
+    Convert a polygon into N,2 np array. If closed, repeat first coords at end.
+    """
     repd = {'J2000 ': '', 'GSC1 ': '', 'ICRS ': '', 'multi': '',
             'polygon': '', ')': '', '(': ''}
     line = replace_all(line.lower(), repd).split('#')[0]
@@ -148,7 +155,7 @@ def parse_poly(line, closed=True, return_string=False):
         if False in polyline[:2] == polyline[-2:]:
             polyline = np.append(polyline, polyline[:2])
 
-    retv = polyline.reshape(len(polyline)/2, 2)
+    retv = polyline.reshape(len(polyline) / 2, 2)
 
     if return_string:
         retv = ','.join(['[{:.6f}, {:.6f}]'.format(*c) for c in retv])
@@ -166,14 +173,14 @@ def split_polygons(polygonlist, tol=49.):
     if len(polygonlist) > 0:
         ply0 = polygonlist[0]
         ins.append(ply0)
-        for i in range(len(polygonlist)-1):
-            ply = polygonlist[i+1]
+        for i in range(len(polygonlist) - 1):
+            ply = polygonlist[i + 1]
             if ply0.intersects(ply):
                 olap = ply0.intersection(ply).area / ply.area * 100
                 if olap > tol:
                     ins.append(ply)
                 else:
-                    #print(olap)
+                    # print(olap)
                     outs.append(ply)
             else:
                 outs.append(ply)
@@ -205,7 +212,8 @@ def notoverlapping():
     """
     write a csv of fields in the same directory that do not overlap.
     """
-    data, s_region = read_footprints('all_poly_simp.csv', instrument='multiband')
+    data, s_region = read_footprints(
+        'all_poly_simp.csv', instrument='multiband')
     coords = [parse_poly(p) for p in s_region]
     polys = np.array([Polygon(c) for c in coords])
     # may need to have a figure for each if statement...
@@ -223,7 +231,7 @@ def notoverlapping():
                 df['s_region'] = s_region[inds[gidx[i]]]
                 not_overlapping = not_overlapping.append(df, ignore_index=True)
         else:
-            #print('all in {} overlap'.format(path))
+            # print('all in {} overlap'.format(path))
             pass
     not_overlapping.to_csv('not_overlapping.csv', index=False, sep=';')
 
@@ -233,7 +241,7 @@ def fix_overlaps(fname='not_overlapping.csv', test_file=False):
     use not_overlapping.csv to group polygons within each directory and print
     bash commands to move the files to temporary directories (to file
     mv_not_overlapping.sh').
-    
+
     test_file will output the region coords as if the moves were made to use
     in aladin_tables to visualize changes.
     """
@@ -256,29 +264,30 @@ def fix_overlaps(fname='not_overlapping.csv', test_file=False):
 
     inds = np.append(inds, len(data))
     line = ''
-    for i in range(len(inds)-1):
-        idx = np.arange(inds[i], inds[i+1])
+    for i in range(len(inds) - 1):
+        idx = np.arange(inds[i], inds[i + 1])
         _, ginds = np.unique(data.iloc[idx]['group'], return_index=True)
-        ginds = np.append(ginds, len(idx)-1)
-        for j in range(len(ginds)-1):
-            gidx = np.arange(idx[ginds[j]], idx[ginds[j+1]])
+        ginds = np.append(ginds, len(idx) - 1)
+        for j in range(len(ginds) - 1):
+            gidx = np.arange(idx[ginds[j]], idx[ginds[j + 1]])
             if j == len(ginds) - 2:
                 if len(gidx) == 1:
                     gidx = np.append(gidx, gidx + 1)
                 else:
                     gidx = np.append(gidx, idx[-1])
-            #print gidx
-            #print(data['filename'].iloc[gidx])
+            # print gidx
+            # print(data['filename'].iloc[gidx])
             newdir = '-'.join([paths[i], order[j]])
             line += 'mkdir {}\n'.format(newdir)
-            line += 'mv {} {}\n'.format(' '.join(data['filename'].iloc[gidx]), newdir)
+            line += 'mv {} {}\n'.format(
+                ' '.join(data['filename'].iloc[gidx]), newdir)
             if test_file:
                 newfnames = [os.path.join(newdir, os.path.split(d)[1])
                              for d in data['filename'].iloc[gidx]]
                 df = data.iloc[gidx].copy(deep=True)
                 df['filename'] = newfnames
                 testfix = testfix.append(df, ignore_index=True)
-    
+
     with open('mv_not_overlapping.sh', 'w') as outp:
         outp.write(line)
 
@@ -306,27 +315,28 @@ def write_poly_subset(data, s_region, idx, plys, outcsv):
 def main(percent_tolerance=49.):
     """
     Check for polygon intersections.
-    
+
     percent_tolerance
-    
+
     assumes several filenaming convenctions.
-    
+
     either supply all_poly_simp.csv or
     run this code where "ls */*lin*reg > tmp" will not create an error
-    
+
     all_poly_simp.csv is a file readable by read_footprints.
-    
+
     This code will first search by subdirectory and check if all polygons
     overlap in area by at least [percent_tolerance]
-    
+
     if there is overlap but the targets do not match (badly named?)
     mismatched_target.csv will be created to hold data from that subdirectory.
-    
+
     if the targets match but there is not enough overlap
     beyond_tolerance.csv will be created to hold data from that subdirectory.
-    Also, this will trigger notoverlapping to be called as well as fix_overlaps.
+    Also, this will trigger notoverlapping to be called as well as
+    fix_overlaps.
     See their docstrings for more information.
-    
+
     TODO: Perhaps add plotting code:
     #for k, p in enumerate([p1, p2]):
     #    p_ = parse_poly(line, closed=False)
@@ -344,7 +354,8 @@ def main(percent_tolerance=49.):
             sys.exit()
 
     # read in footprints
-    data, s_region = read_footprints('all_poly_simp.csv', instrument='multiband')
+    data, s_region = read_footprints(
+        'all_poly_simp.csv', instrument='multiband')
     # turn s_regions into Polygons
     coords = [parse_poly(p) for p in s_region]
     polys = np.array([Polygon(c) for c in coords])
@@ -381,7 +392,8 @@ def main(percent_tolerance=49.):
                 else:
                     # Intersection, targets match, but not enough overlap
                     if olap <= percent_tolerance:
-                        msg = '{} should not intersect with {} {} {} by {:.2f}%'
+                        msg = \
+                            '{} should not intersect with {} {} {} by {:.2f}%'
                         print(msg.format(targ1, targ2, i, j, olap))
                         tol_olap.append(i)
                         tol_olap.append(j)
@@ -400,7 +412,8 @@ def main(percent_tolerance=49.):
         write_poly_subset(data, s_region, idx, plys, 'mismatched_target.csv')
 
     if len(tol_olap) > 1:
-        # Intersection, targets match, but not enough overlap -> beyond_tolerance.csv
+        # Intersection, targets match, but not enough overlap ->
+        # beyond_tolerance.csv
         idx = np.unique(tol_olap)
         plys = polys[idx]
         write_poly_subset(data, s_region, idx, plys, 'beyond_tolerance.csv')

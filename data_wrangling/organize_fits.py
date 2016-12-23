@@ -16,8 +16,10 @@ import numpy as np
 from scipy.spatial import KDTree
 from time import localtime, strftime
 
+
 def unique2d(a):
     return np.array(list(set(tuple(i) for i in a.tolist())))
+
 
 def separate(tablename, radius=0.1):
     table = pd.read_csv(tablename, header=1)
@@ -25,7 +27,8 @@ def separate(tablename, radius=0.1):
     results = k.query_ball_tree(k, radius)
     isolo = np.concatenate([i for i in results if len(i) == 1])
     nsolo = len(isolo)
-    inds, groups = zip(*[(i, r) for (i, r) in enumerate(results) if len(r) > 1])
+    inds, groups = zip(*[(i, r) for (i, r) in
+                         enumerate(results) if len(r) > 1])
     groups, igs = np.unique(groups, return_index=True)
     inds = np.array(inds)[igs]
     ngroups = len(groups)
@@ -42,15 +45,16 @@ def separate(tablename, radius=0.1):
 
 
 def nearest_targets(cluster_table, field_table):
-    cradec = np.genfromtxt(cluster_table, usecols=(4,5))
-    fradec = np.genfromtxt(field_table, usecols=(4,5))
+    cradec = np.genfromtxt(cluster_table, usecols=(4, 5))
+    fradec = np.genfromtxt(field_table, usecols=(4, 5))
     ucradec = unique2d(cradec)
     ufradec = unique2d(fradec)
     k = KDTree(ucradec)
     dists, inds = k.query(ufradec)
     for j, (d, i) in enumerate(zip(dists, inds)):
-        ax.plot(uradec[i,0], uradec[i,1], 'o')
-        ax.plot([uradec[i,0], ulradec[j, 0]] , [uradec[i,1], ulradec[j, 1]])
+        ax.plot(uradec[i, 0], uradec[i, 1], 'o')
+        ax.plot([uradec[i, 0], ulradec[j, 0]], [uradec[i, 1], ulradec[j, 1]])
+
 
 def commonnames():
     # SCRAP!
@@ -62,32 +66,34 @@ def commonnames():
     from astropy.coordinates import SkyCoord
 
     for i in uinds:
-       tt = None
-       ct = None
-       raw_target = cmast['target'][i]
-       if 'NGC' in raw_target:
-          targ = raw_target.replace('C-','C').split('-')[0]
-       else:
-          targ = raw_target.replace('-FIELD','').replace('-COPY','')
-       if targ == 'ANY':
-          continue
-       c = SkyCoord(ra=cmast['s_ra'][i] * u.degree, dec=cmast['s_dec'][i] * u.degree)
-       tt = Simbad.query_object(targ)
-       ct = Simbad.query_region(c)
-       if tt is None:
-          print('name resolver did not find', targ, 'was', raw_target)
-          ttname = 'N/D'
-       else:
-          ttname = tt[0]['MAIN_ID']
-       if ct is None:
-          print('coord resolver did not find', targ, 'was', raw_target)
-          ctname = 'N/D'
-       else:
-          ctname = ct[0]['MAIN_ID']
-       print(targ, raw_target, ttname, ctname)
-    for i in range(len(cmast)):
-        t = Simbad.query_object(cmast['target'][i].replace('-',''))
-        print(cmast['target'][i], t['MAIN_ID'])
+        tt = None
+        ct = None
+        raw_target = cmast['target'][i]
+        if 'NGC' in raw_target:
+            targ = raw_target.replace('C-', 'C').split('-')[0]
+        else:
+            targ = raw_target.replace('-FIELD', '').replace('-COPY', '')
+        if targ == 'ANY':
+            continue
+        c = SkyCoord(ra=cmast['s_ra'][i] * u.degree,
+                     dec=cmast['s_dec'][i] * u.degree)
+        tt = Simbad.query_object(targ)
+        ct = Simbad.query_region(c)
+        if tt is None:
+            print('name resolver did not find', targ, 'was', raw_target)
+            ttname = 'N/D'
+        else:
+            ttname = tt[0]['MAIN_ID']
+        if ct is None:
+            print('coord resolver did not find', targ, 'was', raw_target)
+            ctname = 'N/D'
+        else:
+            ctname = ct[0]['MAIN_ID']
+            print(targ, raw_target, ttname, ctname)
+        for i in range(len(cmast)):
+            t = Simbad.query_object(cmast['target'][i].replace('-', ''))
+            print(cmast['target'][i], t['MAIN_ID'])
+
 
 def good_ext(fnames):
     exts = ['raw', 'flt', 'flc', 'c0m', 'c1m']
@@ -96,17 +102,25 @@ def good_ext(fnames):
         print('No good extensions found {}, {}'.format(fnames, exts))
     return f[0]
 
+desc = """
+Move fits files to directory structure based on fits header
+INSTRUME/PROPOSID_TARGNAME
+"""
+
+
 def main(argv):
-    parser = argparse.ArgumentParser(description="Move fits files to directory structure based on fits header INSTRUME/PROPOSID_TARGNAME")
+    parser = argparse.ArgumentParser(description=desc)
     parser.add_argument("-o", "--outfile", type=str, default='organize.sh',
                         help="script to write to")
 
     args = parser.parse_args(argv)
     create_dirstruct(outfile=args.outfile)
+    return
+
 
 def verify(fitsfileslist):
-     fitslist = map(str.strip, open(fitsfileslist).readlines())
-     for f in fitslist:
+    fitslist = map(str.strip, open(fitsfileslist).readlines())
+    for f in fitslist:
         inst, pidtarg, fname = f.split('/')
         pid, targ = pidtarg.split('_')
         hdr = fits.getheader(f)
@@ -119,11 +133,13 @@ def verify(fitsfileslist):
         if f.endswith('flc'):
             cal = float(hdr['CAL_VER'][:3])
             if cal < 3.3:
-                print('{}: CAL_VER is less than 3.3: {}'.format(f, hdr['CAL_VER']))
+                print('{}: CAL_VER is less than 3.3: {}'
+                      .format(f, hdr['CAL_VER']))
 
 
 def same_targ(fits):
     return np.unique([f.split('_')[0] for f in fits], return_index=True)
+
 
 def update_fits(data, key='targname'):
     """
@@ -170,6 +186,7 @@ def update_fits(data, key='targname'):
 #data = pd.read_csv('final_wfc3.csv', header=0)
 #create_dirstruct(outfile='wfc3.sh', data=data)
 
+
 def create_dirstruct(outfile=None, data=None, propid=None, basedir=None):
     line = ''
     if data is None:
@@ -194,6 +211,7 @@ def create_dirstruct(outfile=None, data=None, propid=None, basedir=None):
             fnames.append(raw)
         for f in fnames:
             try:
+                print('reading', f)
                 hdu = fits.open(f)
                 hdr = hdu[0].header
             except:
