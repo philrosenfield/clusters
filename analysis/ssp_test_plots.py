@@ -57,8 +57,8 @@ def cluster_result_plots(sspfns, oned=False, twod=False, onefig=False):
                   'trueov', 'dav']
 
     # This assures the same order on the plots, though they are default in ssp
-    # marg_cols = ['Av', 'bf', 'dmod', 'lage', 'logZ', 'ov']
-    marg_cols = ['Av', 'bf', 'dmod', 'lage', 'logZ', 'vvcrit']
+    marg_cols = ['Av', 'bf', 'dmod', 'lage', 'logZ', 'ov']
+    # marg_cols = ['Av', 'bf', 'dmod', 'lage', 'logZ', 'vvcrit']
     frompost = False
     nssps = len(sspfns)
     ndim = len(marg_cols)
@@ -73,7 +73,7 @@ def cluster_result_plots(sspfns, oned=False, twod=False, onefig=False):
         print(sspfn)
         if sspfn.endswith('.csv'):
             # ssp = SSP(sspfn, gyr=True)
-            ssp = SSP(sspfn)
+            ssp = SSP(sspfn, filterby={'IMF': 1.35}, gyr=True)
             # ssp.gyr = False
             # Checks for more than one unique value to marginalize over
             # also adds unique arrays as attributes so this won't add
@@ -116,14 +116,32 @@ def cluster_result_plots(sspfns, oned=False, twod=False, onefig=False):
             ax.tick_params(labelbottom='off', tickdir='in')
             ax.axes.set_xlabel('')
         [ax.axes.set_ylabel('') for ax in axs[:, 0]]
+        # dmod hack:
+        [ax.locator_params(axis='x', nbins=4) for ax in axs.ravel()]
+        [ax.locator_params(axis='x', nbins=3) for ax in axs.T[2]]
         fig.text(0.02, 0.5, labelfmt.format('Probability'), ha='center',
                  va='center', rotation='vertical')
-        fig.subplots_adjust(hspace=0.07, wspace=0.07, right=0.95, top=0.98,
+        fig.subplots_adjust(hspace=0.08, wspace=0.1, right=0.95, top=0.98,
                             bottom=0.08)
+
+        unify_axlims(axs)
         figname = 'combo_{}_ssps.pdf'.format(nssps)
         plt.savefig(figname)
         plt.close()
     return
+
+
+def unify_axlims(axs, bycolumn=True, x=True, y=False):
+    if bycolumn:
+        axs = axs.T
+    for i in range(len(axs)):
+        col = axs[i]
+        if x:
+            l, h = zip(*[a.get_xlim() for a in col])
+            [a.set_xlim(np.min(l), np.max(h)) for a in col]
+        if y:
+            l, h = zip(*[a.get_ylim() for a in col])
+            [a.set_ylim(np.min(l), np.max(h)) for a in col]
 
 
 def parse_args(argv=None):
