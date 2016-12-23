@@ -57,8 +57,8 @@ def cluster_result_plots(sspfns, oned=False, twod=False, onefig=False):
                   'trueov', 'dav']
 
     # This assures the same order on the plots, though they are default in ssp
-    # marg_cols = ['Av', 'bf', 'dmod', 'lage', 'logZ', 'ov']
-    marg_cols = ['Av', 'bf', 'dmod', 'lage', 'logZ', 'vvcrit']
+    marg_cols = ['Av', 'bf', 'dmod', 'lage', 'logZ', 'ov']
+    # marg_cols = ['Av', 'bf', 'dmod', 'lage', 'logZ', 'vvcrit']
     frompost = False
     nssps = len(sspfns)
     ndim = len(marg_cols)
@@ -72,8 +72,8 @@ def cluster_result_plots(sspfns, oned=False, twod=False, onefig=False):
     for i, sspfn in enumerate(sspfns):
         print(sspfn)
         if sspfn.endswith('.csv'):
-            # ssp = SSP(sspfn, gyr=True)
-            ssp = SSP(sspfn)
+            ssp = SSP(sspfn, gyr=True, filterby={'IMF': 1.35})
+            # ssp = SSP(sspfn)
             # ssp.gyr = False
             # Checks for more than one unique value to marginalize over
             # also adds unique arrays as attributes so this won't add

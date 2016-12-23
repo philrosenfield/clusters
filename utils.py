@@ -1,6 +1,6 @@
 def replace_all(text, dic):
     """perfrom text.replace(key, value) for all keys and values in dic"""
-    for old, new in dic.iteritems():
+    for old, new in dic.items():
         text = text.replace(old, new)
     return text
 
