@@ -15,6 +15,9 @@ sd = sns.axes_style()
 sd['text.usetex'] = True
 sns.set(sd)
 
+EXT = '.pdf'
+# EXT = '.png'
+
 
 def _joint_plot(size=8, ratio=5, space=0.2):
     """Hack edits of sns.JointGrid so I can access it mpl style"""
@@ -65,8 +68,9 @@ def fake_cmds(phots, space=0.2):
     ax_joint.set_ylabel('$F814W$')
     f.tight_layout()
     f.subplots_adjust(hspace=space, wspace=space)
-    #plt.savefig('fake_cmds{}.pdf'.format(age))
+    # plt.savefig('fake_cmds{}.pdf'.format(age))
     return f, ax_joint, ax_marg_x, ax_marg_y
+
 
 def setup_covlifetimes(data, hb=False, agescale=1e6):
     intp_dict = {}
@@ -86,7 +90,6 @@ def setup_covlifetimes(data, hb=False, agescale=1e6):
                       bounds_error=False)
         intp_dict[ov] = fx(intp_masses)
     return intp_dict
-
 
 
 def cov_masslifetimes(hb=False, both=False):
@@ -121,6 +124,7 @@ def cov_masslifetimes(hb=False, both=False):
         ax.set_ylabel(r'$\rm{Mass}\ (\rm{M}_\odot)$')
         # axt.set_yscale('log')
     # stopped here...
+
 
 def cov_complifetimes(hb=False, both=False):
     # Plot a comparison of the H or He lifetimes vs Mass to OV=0.50
@@ -165,7 +169,7 @@ def cov_complifetimes(hb=False, both=False):
     ax.set_xlim(xlim)
     if both:
         plt.legend(loc=0)
-    plt.savefig('COV_{}.png'.format(tau.split('_')[1]))
+    plt.savefig('COV_{}'.format(tau.split('_')[1]) + EXT)
     if both:
         hb2 = not hb
         ax2 = cov_lifetimes(hb=hb2, both=False)
@@ -173,7 +177,7 @@ def cov_complifetimes(hb=False, both=False):
     return ax
 
 
-def plot_compare_tracks(ptcri_loc, tracks_dir, sandro=True, Z=0.004):
+def plot_compare_tracks(Z=0.004):
     # not sure if it's needed, but makes a pretty hrd.
     plt.rcParams['lines.linewidth'] -= 1
     from data_plots import adjust_zoomgrid, setup_zoomgrid
@@ -184,8 +188,10 @@ def plot_compare_tracks(ptcri_loc, tracks_dir, sandro=True, Z=0.004):
     tracks = []
     for cov in cov_strs:
         for mass in masses:
-            track_dir, = fileio.get_dirs(os.getcwd(), criteria='%s_Z%g_' % (cov, Z))
-            track_name = fileio.get_files(track_dir, '*M{:.2f}*dat'.format(mass))
+            track_dir, = fileio.get_dirs(os.getcwd(),
+                                         criteria='%s_Z%g_' % (cov, Z))
+            track_name = fileio.get_files(track_dir,
+                                          '*M{:.2f}*dat'.format(mass))
             track = Track(track_name[0], match=True)
             if len(track_name) > 1:
                 if cov == 'OV0.3':
@@ -196,7 +202,7 @@ def plot_compare_tracks(ptcri_loc, tracks_dir, sandro=True, Z=0.004):
                     # this won't add MSTO age to HB, only for HRD plotting.
                     df1 = pd.DataFrame(track.data)
                     track.data = df1.append(pd.DataFrame(Track(track_name[1],
-                                                              match=True).data))
+                                                         match=True).data))
             tracks.append(track)
     fig, axs = setup_zoomgrid()
     for k, t in enumerate(tracks[::-1]):
@@ -206,23 +212,26 @@ def plot_compare_tracks(ptcri_loc, tracks_dir, sandro=True, Z=0.004):
         if t.mass == masses[0]:
             ax = axs[2]
             if not t.hb:
-                axs[0].plot(t.data['logT'][200:], t.data['logL'][200:], label=label,
-                            color=cols[icol])
+                axs[0].plot(t.data['logT'][200:], t.data['logL'][200:],
+                            label=label, color=cols[icol])
             else:
-                axs[0].plot(t.data['logT'][200:], t.data['logL'][200:], color=cols[icol])
+                axs[0].plot(t.data['logT'][200:], t.data['logL'][200:],
+                            color=cols[icol])
         else:
-            axs[0].plot(t.data['logT'][200:], t.data['logL'][200:], color=cols[icol])
+            axs[0].plot(t.data['logT'][200:], t.data['logL'][200:],
+                        color=cols[icol])
             ax = axs[1]
 
         if t.hb:
             ax.plot(t.data['logT'], t.data['logL'], color=cols[icol])
         else:
-            ax.plot(t.data['logT'][1130:], t.data['logL'][1130:], color=cols[icol])
+            ax.plot(t.data['logT'][1130:], t.data['logL'][1130:],
+                    color=cols[icol])
 
-    zoom2_kw={'ylim': [1.75, 2.],
-              'xlim': [3.706, 3.685]}
-    zoom1_kw={'ylim': [1.5, 2.1],
-              'xlim': [3.725, 3.685]}
+    zoom2_kw = {'ylim': [1.75, 2.],
+                'xlim': [3.706, 3.685]}
+    zoom1_kw = {'ylim': [1.5, 2.1],
+                'xlim': [3.725, 3.685]}
     adjust_zoomgrid(axs[0], axs[1], axs[2], zoom1_kw=zoom1_kw,
                     zoom2_kw=zoom2_kw, reversey=False)
     axs[1].locator_params('x', nbins=3)
@@ -244,7 +253,7 @@ def plot_compare_tracks(ptcri_loc, tracks_dir, sandro=True, Z=0.004):
     for x, y, m in zip(xs, ys, masses):
         axs[0].text(x, y, '${}M_\odot$'.format(m), fontsize=20, ha='center')
 
-    plt.savefig('COV_HRD.png')
+    plt.savefig('COV_HRD' + EXT)
 
 
 def plot_compare_tracks_old(ptcri_loc, tracks_dir, sandro=True, Z=0.004):
@@ -295,4 +304,4 @@ def plot_compare_tracks_old(ptcri_loc, tracks_dir, sandro=True, Z=0.004):
     for x, y, m in zip(xs, ys, masses):
         ax.text(x, y, '${}M_\odot$'.format(m), fontsize=20, ha='right')
 
-    plt.savefig('COV_HRD.png')
+    plt.savefig('COV_HRD' + EXT)
