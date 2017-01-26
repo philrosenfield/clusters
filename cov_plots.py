@@ -177,10 +177,14 @@ def cov_complifetimes(hb=False, both=False):
     return ax
 
 
+
 def plot_compare_tracks(Z=0.004):
     # not sure if it's needed, but makes a pretty hrd.
     plt.rcParams['lines.linewidth'] -= 1
-    from data_plots import adjust_zoomgrid, setup_zoomgrid
+    from .data_plots import adjust_zoomgrid, setup_zoomgrid
+    from . import fileio
+    import os
+    from padova_tracks.tracks.track import Track
     cov_strs = ['OV0.3', 'OV0.4', 'OV0.5', 'OV0.6']
     masses = [1.5, 2.]
     # not_so_great(ts_dict)
@@ -254,7 +258,7 @@ def plot_compare_tracks(Z=0.004):
         axs[0].text(x, y, '${}M_\odot$'.format(m), fontsize=20, ha='center')
 
     plt.savefig('COV_HRD' + EXT)
-
+plot_compare_tracks(Z=0.006)
 
 def plot_compare_tracks_old(ptcri_loc, tracks_dir, sandro=True, Z=0.004):
     # not sure if it's needed, but makes a pretty hrd.

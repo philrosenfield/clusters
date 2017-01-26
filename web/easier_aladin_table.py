@@ -1,13 +1,14 @@
 import argparse
-from palettable.colorbrewer import qualitative
 import numpy as np
 import sys
 
 import pandas as pd
 import string
-from utils import replace_all
-from footprints.footprint_overlaps import parse_poly, read_footprints
-allTheLetters = string.lowercase
+from ..utils import replace_all
+from fitshelper.footprints import parse_poly
+import seaborn
+seaborn.set()
+allTheLetters = string.ascii_lowercase
 
 
 def read_hlacsv(filename):
@@ -20,7 +21,7 @@ def read_hlacsv(filename):
     data = pd.read_csv(filename, sep=';')
     if not 'target' in data.columns:
         data['target'] = [os.path.split(f)[0].split('_')[1] for f in data['filename']]
-    
+
     if not 'pid' in data.columns:
         data['propid'] = [os.path.split(f)[0].split('_')[0] for f in data['filename']]
 
@@ -78,20 +79,24 @@ def catalog_line(name, data, ms=10, color='red'):
     if 'images' in data.columns:
         data['img'] = pd.Series()
         for i in range(len(data)):
-            images = data['images'].iloc[i].split(',')
-            if len(images) > 1:
-                data['img'].iloc[i] = '<br/>'.join([imgfmt.format(img) for img in images])
+            if not isinstance(data['images'].iloc[i], float):
+                images = data['images'].iloc[i].split(',')
+                if len(images) > 1:
+                    data['img'].iloc[i] = '<br/>'.join([imgfmt.format(img) for img in images])
+                else:
+                    data['img'].iloc[i] = imgfmt.format(images[0])
             else:
-                data['img'].iloc[i] = imgfmt.format(images[0])
+                data['img'].iloc[i] = "None"
 
     head = ("var {0} = A.catalog({{name: '{0}', sourceSize: {1}, color: '{2}'}});\n"
             "aladin.addCatalog({0});\n".format(name, ms, color))
 
-    fmt = ("A.source(%(ra)f, %(dec)f, "
-           "{name: '%(target)s', "
-           "image: "
-           "'%(img)s'})")
-    
+    #fmt = ("A.source(%(ra)f, %(dec)f, "
+    #       "{name: '%(target)s', "
+    #       "image: "
+    #       "'%(img)s'})")
+
+    fmt = ("A.marker(%(ra)s, %(dec)s, {popupTitle: '%(target)s', popupDesc: '<em>Filters:</em> \"%(filters)s\"'})")
     catalog = ', '.join([fmt % data.iloc[d] for d in range(len(data))])
     cat_line = "{0}{1}.addSources([{2}]);\n".format(head, name, catalog)
     return cat_line
@@ -117,10 +122,11 @@ header = \
 <script>
 var aladin = A.aladin('#aladin-lite-div', {target: '03 46 45.6 -74 26 40', fov: 30.0, fullScreen: false});
 
-aladin.addCatalog(A.catalogFromVizieR('J/MNRAS/389/678/table3', '03 46 46.5 -74 26 40', 30.0, {onClick: 'showTable', name: 'Bica2006'}));
-aladin.addCatalog(A.catalogFromVizieR('J/A+A/517/A50/clusters', '03 46 46.5 -74 26 40', 30.0, {onClick: 'showTable', name: 'Glatt2010'}));
 aladin.addCatalog(A.catalogFromVizieR('J/MNRAS/430/676/table2', '03 46 46.5 -74 26 40', 30.0, {onClick: 'showTable', name: 'Baumgardt2013'}));
 """
+# aladin.addCatalog(A.catalogFromVizieR('J/MNRAS/389/678/table3', '03 46 46.5 -74 26 40', 30.0, {onClick: 'showTable', name: 'Bica2006'}));
+# aladin.addCatalog(A.catalogFromVizieR('J/A+A/517/A50/clusters', '03 46 46.5 -74 26 40', 30.0, {onClick: 'showTable', name: 'Glatt2010'}));
+
 #// define function triggered when  a source is hovered
 #aladin.on('objectHovered', function(object) {
 #    var msg;
@@ -168,19 +174,6 @@ def make_html(outfile=None, csvs=None, poly_names=None, poly_colors=None, ms=10,
     if cat_names is None:
         cat_names = ['hstcat{}'.format(allTheLetters[i]) for i in range(ncsvs)]
 
-    if poly_colors is None:
-        try:
-            ncol = np.max((3, ncsvs))
-            poly_colors = qualitative.__getattribute__('Paired_{}'.format(ncol)).hex_colors
-        except KeyError:
-            print('too many csvs!')
-            some_poly_colors = qualitative.Paired['max'].hex_colors
-            # cycle... could probably make it a generator...
-            poly_colors = some_poly_colors * 50
-
-    if cat_colors is None:
-        cat_colors = poly_colors
-
     pstr = [header]
     for i in range(ncsvs):
         try:
@@ -188,16 +181,14 @@ def make_html(outfile=None, csvs=None, poly_names=None, poly_colors=None, ms=10,
             data['instrument'] = 'multiband'
             s_region = data['s_region']
         except:
-            try:
-                data, s_region = read_footprints(csvs[i], instrument='WFC3')
-            except:
-                data, s_region = read_csv(csvs[i])
+            data, s_region = read_csv(csvs[i])
+            # try:
+                # data, s_region = read_footprints(csvs[i], instrument='WFC3')
+            # except:
 
-        pstr.append(polygon_line(poly_names[i], s_region, lw=lw,
-                                 color=poly_colors[i]))
+        pstr.append(polygon_line(poly_names[i], s_region, lw=lw))
 
-        pstr.append(catalog_line(cat_names[i], data, ms=ms,
-                                 color=cat_colors[i]))
+        pstr.append(catalog_line(cat_names[i], data, ms=ms))
 
     pstr.append(footer)
     with open(outfile, 'w') as out:

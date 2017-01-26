@@ -1,5 +1,4 @@
 import argparse
-from palettable.colorbrewer import qualitative
 import numpy as np
 import sys
 import pandas as pd
@@ -123,30 +122,17 @@ def make_html(outfile=None, csvs=None, poly_names=None, poly_colors=None, ms=10,
     if cat_names is None:
         cat_names = ['hstcat{}'.format(allTheLetters[i]) for i in range(ncsvs)]
 
-    if poly_colors is None:
-        try:
-            ncol = np.max((3, ncsvs))
-            poly_colors = qualitative.__getattribute__('Paired_{}'.format(ncol)).hex_colors
-        except KeyError:
-            print('too many csvs!')
-            some_poly_colors = qualitative.Paired['max'].hex_colors
-            # cycle... could probably make it a generator...
-            poly_colors = some_poly_colors * 50
-
-    if cat_colors is None:
-        cat_colors = poly_colors
-
     pstr = [header]
     for i in range(ncsvs):
         if mast:
             data = read_hlacsv(csvs[i])
             pstr.append(polygon_line(poly_names[i], data['s_region'], lw=lw,
-                                     color=poly_colors[i]))
+                                     color='g'))
         else:
             data = Table.read(csvs[i], header_start=0, delimiter=' ')
 
         pstr.append(catalog_line(cat_names[i], data, ms=ms, mast=mast,
-                                 color=cat_colors[i]))
+                                 color='r'))
 
     pstr.append(footer)
     with open(outfile, 'w') as out:

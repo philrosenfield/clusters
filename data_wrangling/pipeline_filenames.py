@@ -4,7 +4,8 @@ import sys
 
 from astropy.io import fits
 
-def fix_filename(fname, fext='VEGA', clobber=False, newdir=''):
+def fix_filename(fname, fext='VEGA', clobber=False, newdir=None):
+    newdir = newdir or os.getcwd()
     base, name = os.path.split(fname)
     mv = 'mv -i'
     if os.path.isdir(newdir):

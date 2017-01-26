@@ -10,15 +10,15 @@ from clusters.data_plots import cmd
 def getfakes():
     loc = '/Users/rosenfield/research/clusters/asteca/acs_wfc3/match_runs'
     fakes = [os.path.join(loc, f)
-             for f in ['9891_NGC1978_F555W_F814W.gst.matchfake',
-                       '12257_HODGE2_F475W-F814W.gst.matchfake',
+             for f in ['12257_HODGE2_F475W-F814W.gst.matchfake',
                        '12257_NGC1718_F475W-F814W.gst.matchfake',
-                       '12257_NGC2173_F475W-F814W.gst.matchfake',
+                       # '9891_NGC1978_F555W_F814W.gst.matchfake',
+                       # '12257_NGC2173_F475W-F814W.gst.matchfake',
                        '12257_NGC2203_F475W-F814W.gst.matchfake',
                        '12257_NGC2213_F475W-F814W.gst.matchfake',
                        '9891_NGC1644_F555W-F814W.gst.matchfake',
-                       '9891_NGC1795_F555W-F814W.gst.matchfake',
-                       '9891_NGC1917_F555W-F814W.gst.matchfake']]
+                       '9891_NGC1795_F555W-F814W.gst.matchfake']]
+                       # '9891_NGC1917_F555W-F814W.gst.matchfake']]
                        # '12257_HODGE6_F475W-F814W.gst.matchfake'
     asts_ = [asts.ASTs(fake) for fake in fakes]
     return asts_
@@ -119,7 +119,7 @@ def make_fake_plots():
 
     asts_ = getfakes()
 
-    fig, axss = plt.subplots(ncols=2, nrows=9, sharey=True, figsize=(4.5, 7.24))
+    fig, axss = plt.subplots(ncols=2, nrows=len(asts_), sharey=True, figsize=(4.5, 7.24))
     for i, ast in enumerate(asts_):
         ast.completeness(combined_filters=True, interpolate=True, binsize=0.15)
         ast.magdiff_plot(axs=axss[i])
@@ -150,6 +150,7 @@ def make_fake_plots():
         ax.yaxis.tick_right()
 
     # add 90% completeness lines
+    """
     for i, ast in enumerate(asts_):
         if i == 0:
             c1 = 25.
@@ -158,7 +159,7 @@ def make_fake_plots():
             c1, c2 = ast.get_completeness_fraction(0.9)
         axss[i][0].axvline(c1, lw=2, color='darkred')
         axss[i][1].axvline(c2, lw=2, color='darkred')
-
+    """
     fig.subplots_adjust(bottom=0.1, top=0.95, hspace=0.35, wspace=0.07,
                         left=0.15, right=0.85)
 

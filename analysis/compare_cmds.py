@@ -1,108 +1,130 @@
+"""Functions to print the best CMDs and compare them to the next best CMD"""
 import os
+import argparse
+import sys
+
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
-from match.scripts.cmd import CMD
+from match.scripts.cmd import CMD, sortbyfit
 from match.scripts.compare_cmds import comp_cmd, diff_
 from match.scripts.fileio import get_files
 from match.scripts.graphics.graphics import square_aspect
 from match.scripts.ssp import SSP
+from match.scripts.config import OUTEXT, EXT
+
+CMDEXT = OUTEXT + '.cmd'
 
 plt.style.use('presentation')
 sns.set_style('ticks')
 sns.set_context('paper', font_scale=1.5)
 
 
-def twobest(sstr, ssp, label=None):
-    cmds = [CMD(c) for c in get_files(places(ssp.name.split('_')[0]), sstr)]
-    icmds = np.argsort([cmd.fit for cmd in cmds])[:2]
-    cmd0 = cmds[icmds[0]]
-    cmd = cmds[icmds[1]]
-    print(diff_(cmd0, cmd, ssp=ssp))
-    return comp_cmd(cmd0, cmd, label=label)
+def two_best(loc, ssp=None, label=None, figname=None):
+    """plot the difference between best two hess diagrams and print differences"""
+    all_cmdfns = get_files(loc, '*{}'.format(CMDEXT))
+    if len(all_cmdfns) == 0:
+        print('no {0:s} files found in {1:s}'.format(CMDEXT, loc))
+        return
+    twobest_cmdfns = sortbyfit(all_cmdfns, onlyheader=True)[:2]
 
-def places(target):
-    data_base = '/Volumes/tehom/research/clusters/asteca/acs_wfc3/paper1/final_data/'
-    places_dict = {'NGC1644': os.path.join(data_base, 'NGC1644', 'lowz', 'slurm'),
-                   'NGC2213': os.path.join(data_base, 'NGC2213', 'slurm'),
-                   'NGC2203': os.path.join(data_base, 'NGC2203', 'slurm'),
-                   'NGC2173': os.path.join(data_base, 'NGC2173', 'slurm'),
-                   'NGC1978': os.path.join(data_base, 'NGC1978', 'slurm'),
-                   'NGC1917': os.path.join(data_base, 'NGC1917', 'slurm'),
-                   'NGC1795': os.path.join(data_base, 'NGC1795', 'slurm'),
-                   'HODGE2': os.path.join(data_base, 'HODGE2', 'slurm')}
-    return places_dict[target.upper()]
+    cmd0, cmd = [CMD(c) for c in twobest_cmdfns]
+    if ssp is None:
+        try:
+            sspfn, = get_files(loc, '*csv')
+            ssp = SSP(sspfn, gyr=True)
+            label = r'$\rm{{{}}}$'.format(ssp.name.split('_')[0])
+        except:
+            label = None
 
-def interesting_plots(outdir=None):
-    """CMD plots at edges of parameter space"""
-    outdir = outdir or '/Users/rosenfield/Desktop/'
+    print(cmd0.name)
+    dif = diff_(cmd0, cmd, ssp=ssp)
+    print(dif)
+    for key in dif.keys():
+        print(key, np.diff(np.array(dif[key].split(','), dtype=float))[0])
 
-    fig, ax = twobest('*bf?.??_imf0.75_*ov0.5*cmd', ssp1644, label=r'$\rm{NGC1644}$')
-    plt.savefig(os.path.join(outdir, 'NGC1644_bfcomp.pdf'))
+    comp_cmd(cmd0, cmd, label=label, figname=figname)
 
-    fig, ax = twobest('*bf0.75_imf*ov0.50*cmd', ssp2213, label=r'$\rm{NGC2213}$')
-    plt.savefig(os.path.join(outdir, 'NGC2213_imfcomp.pdf'))
-
-    fig, ax = twobest('*bf0.65_imf*cmd', ssp2203, label=r'$\rm{NGC2203}$')
-    plt.savefig(os.path.join(outdir, 'NGC2203_imfcomp.pdf'))
-
-    fig, ax = twobest('*bf0.65_imf0.5_*cmd', ssp2203, label=r'$\rm{NGC2203}$')
-    plt.savefig(os.path.join(outdir, 'NGC2203_ovcomp.pdf'))
-    ax.set_xlim(0.4, 1.65)
-    ax.set_ylim(22., 19.5)
-    square_aspect(ax)
-    plt.savefig(os.path.join(outdir, 'NGC2203_ovcomp_zoom.pdf'))
-
-    fig, ax = twobest('*bf0.55_imf*ov0.50*cmd', ssp2173, label=r'$\rm{NGC2173}$')
-    plt.savefig(os.path.join(outdir, 'NGC2173_imfcomp.pdf'))
-
-    fig, ax = twobest('*bf0.75_imf*cmd', ssp1978, label=r'$\rm{NGC1978}$')
-    plt.savefig(os.path.join(outdir, 'NGC1978_imfcomp.pdf'))
-
-    fig, ax = twobest('*bf0.75_imf0.5_*cmd', ssp1978, label=r'$\rm{NGC1978}$')
-    plt.savefig(os.path.join(outdir, 'NGC1978_ovcomp.pdf'))
-    ax.set_xlim(0.4, 1.2)
-    ax.set_ylim(22., 18.5)
-    square_aspect(ax)
-    plt.savefig(os.path.join(outdir, 'NGC1978_ovcomp_zoom.pdf'))
-
-
-def best_cmds(outdir=None):
-    # best fit ssp run (found using ipython):
-    # ssp.data.ssp.iloc[np.argmin(ssp.data.fit)]
-    outdir = outdir or '/Users/rosenfield/Desktop/'
-
-    bestfit = {'NGC1917': 1578,
-               'NGC1795': 1641,
-               'HODGE2': 1675,
-               'NGC1644': 1776,
-               'NGC2213': 1216,
-               'NGC2203': 1814,
-               'NGC2173': 1531,
-               'NGC1978': 451}
-               # Done forget NGC1718...
-    for target in bestfit.keys():
-        figname = os.path.join(outdir, '{:s}_cmd.pdf'.format(target))
-        cmd = CMD(get_files(places(target),
-                            '*ssp{:d}.out.cmd'.format(bestfit[target]))[0])
-        labels = cmd.set_labels()
-        labels[-1] = r'$\rm{sig}$'
-        cmd.pgcmd(labels=labels, figname=figname, twobytwo=False)
     return
 
-def main():
-    best_cmds()
-    res_base = '/Volumes/tehom/research/clusters/asteca/acs_wfc3/paper1/final_data/results'
-    ssp1644 = SSP(os.path.join(res_base, 'NGC1644_full.csv'))
-    ssp2213 = SSP(os.path.join(res_base, 'NGC2213_full.csv'))
-    ssp2203 = SSP(os.path.join(res_base, 'NGC2203_full.csv'))
-    ssp2173 = SSP(os.path.join(res_base, 'NGC2173_full.csv'))
-    ssp1978 = SSP(os.path.join(res_base, 'NGC1978_full.csv'))
-    ssp1917 = SSP(os.path.join(res_base, 'NGC1917_full.csv'))
-    ssph2 = SSP(os.path.join(res_base, 'HODGE2_full.csv'))
-    ssp1795 = SSP(os.path.join(res_base, 'NGC1795_full.csv'))
-    interesting_plots()
+def two_bests(targets, outdir=None, data_base=None):
+    """call two_best with list of targets"""
+    outdir = outdir or os.getcwd()
+    places_dict = places(targets, data_base=data_base)
+
+    for target in targets:
+        figname = os.path.join(outdir, '{:s}_toptwo.pdf'.format(target))
+        two_best(places_dict[target], figname=figname)
+    return
+
+def places(targets, data_base=None, subdir='slurm'):
+    """load a dictionary of targets and the location of their data"""
+    data_bases = data_base or os.getcwd()
+    places_dict = {}
+    for targ in targets:
+        places_dict[targ] = os.path.join(data_base, targ, subdir)
+        assert os.path.isdir(places_dict[targ]), \
+            'Directory does not exist {}'.format(places_dict[targ])
+    return places_dict
+
+
+def best_pgcmd(loc, figname=None, twobytwo=False, sig=False):
+    """call pgcmd for the best fitting cmd file"""
+    all_cmdfns = get_files(loc, '*{}'.format(CMDEXT))
+    if len(all_cmdfns) == 0:
+        print('no {0:s} files found in {1:s}'.format(CMDEXT, loc))
+        return
+    best_cmdfn = sortbyfit(all_cmdfns, onlyheader=True)[0]
+    if figname is None:
+        figname = best_cmdfn + EXT
+
+    cmd = CMD(best_cmdfn)
+    cmd.pgcmd(figname=figname, twobytwo=twobytwo, sig=sig)
+    return
+
+
+def best_pgcmds(targets, outdir=None, data_base=None):
+    """Call best_pgcmd with list of targets"""
+    outdir = outdir or os.getcwd()
+    places_dict = places(targets, data_base=data_base)
+
+    for target in targets:
+        figname = os.path.join(outdir, '{:s}_cmd.pdf'.format(target))
+        best_pgcmd(places_dict[target], figname=figname)
+    return
+
+
+def parse_args(argv):
+    parser = argparse.ArgumentParser(description="plot and compare cmd files")
+
+    parser.add_argument('targets', type=str,
+                        help='file with a list of targets names')
+
+    parser.add_argument('--outdir', type=str, default=os.getcwd(),
+                        help='directory to put plots')
+
+    parser.add_argument('--data_base', type=str, default=os.getcwd(),
+                        help='where to look for the data in data/cluster/slurm')
+
+    parser.add_argument('-b', '--best', action='store_true',
+                        help='plot best fit cmd comparison')
+
+    parser.add_argument('-c', '--comp', action='store_true',
+                        help='plot comparison of top two best fits')
+    return parser.parse_args(argv)
+
+def main(argv):
+    args = parse_args(argv)
+    with open(args.targets) as inp:
+        targets = [i.strip() for i in inp.readlines() if len(i.strip()) > 0]
+
+    if args.best:
+        best_pgcmds(targets, outdir=args.outdir, data_base=args.data_base)
+
+    if args.comp:
+        two_bests(targets, outdir=args.outdir, data_base=args.data_base)
+    return
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main(sys.argv[1:]))
