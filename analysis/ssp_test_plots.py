@@ -80,7 +80,7 @@ def bycov(sspfns, oned=True, twod=False, onefig=False):
 
                 if oned:
                     f, raxs = ssp.pdf_plots(marginals=marg_cols, text=label,
-                                            fig=fig, axs=axs[i])
+                                            fig=fig, axs=axs[i], gauss1D=True)
                 if not onefig:
                     figname = sspfn.replace('.csv', 'ov{0:.1f}_1d.pdf'.foramt(ov))
                     plt.savefig(figname)
@@ -94,7 +94,7 @@ def bycov(sspfns, oned=True, twod=False, onefig=False):
                 ssp.write_posterior(filename='{0:s}_ov{1:.1f}_post.dat'.format(targ, ov))
                 if twod:
                     ssp.pdf_plots(marginals=marg_cols, text=label, twod=True,
-                                  cmap=plt.cm.Reds)
+                                  cmap=plt.cm.Reds, gauss1D=True)
                     figname = sspfn.replace('.csv', '_ov{0:.1f}.pdf'.format(ov))
                     plt.savefig(figname)
                     plt.close()
@@ -112,13 +112,13 @@ def cluster_result_plots(sspfns, oned=False, twod=False, onefig=False,
     """corner plot of a big combine scrn output"""
     labelfmt = r'$\rm{{{}}}$'
     avoid_list = ['sfr', 'fit', 'dmag_min', 'vstep', 'vistep', 'tbin', 'ssp',
-                  'trueov', 'dav']
+                  'trueov']
     if mist:
         avoid_list = ['sfr', 'fit', 'dmag_min', 'vstep', 'vistep', 'ssp',
                       'trueov', 'dav']
 
     # This assures the same order on the plots, though they are default in ssp
-    marg_cols = ['Av', 'dmod', 'lage', 'logZ', 'ov']
+    marg_cols = ['Av', 'dav', 'dmod', 'lage', 'logZ', 'ov']
     if mist:
         marg_cols = ['Av', 'dmod', 'lage', 'logZ', 'vvcrit', 'tbin']
     frompost = False
@@ -126,7 +126,7 @@ def cluster_result_plots(sspfns, oned=False, twod=False, onefig=False,
     ndim = len(marg_cols)
     fig = None
     axs = [None] * nssps
-
+    line = ''
     if onefig:
         fig, axs = plt.subplots(nrows=nssps, ncols=ndim,
                                 figsize=(ndim * 1.4, nssps))
@@ -134,14 +134,10 @@ def cluster_result_plots(sspfns, oned=False, twod=False, onefig=False,
     for i, sspfn in enumerate(sspfns):
         print(sspfn)
         if sspfn.endswith('.csv'):
-            ssp = SSP(sspfn, gyr=True)# , filterby={'IMF': 1.35, 'bf': 0.3})
+            ssp = SSP(sspfn, gyr=True)
             # ssp = SSP(sspfn)
             # ssp.gyr = False
-            # Checks for more than one unique value to marginalize over
-            # also adds unique arrays as attributes so this won't add
-            # computation time.
             ssp.check_grid(skip_cols=avoid_list)
-            # import pdb; pdb.set_trace()
         else:
             ssp = SSP()
             ssp.gyr = True
@@ -154,8 +150,8 @@ def cluster_result_plots(sspfns, oned=False, twod=False, onefig=False,
             label = None
 
         if oned:
-            f, raxs = ssp.pdf_plots(marginals=marg_cols, text=label,
-                                    fig=fig, axs=axs[i], frompost=frompost)
+            f, raxs = ssp.pdf_plots(marginals=marg_cols, text=label, axs=axs[i],
+                                    gauss1D=True, fig=fig, frompost=frompost)
 
             if not onefig:
                 figname = sspfn.replace('.csv', '_1d.pdf')
@@ -167,12 +163,19 @@ def cluster_result_plots(sspfns, oned=False, twod=False, onefig=False,
 
             if not frompost:
                 ssp.write_posterior(filename='{}_post.dat'.format(targ))
+
         if twod:
             ssp.pdf_plots(marginals=marg_cols, text=label, twod=True,
-                          cmap=plt.cm.Reds)
+                          gauss1D=True, cmap=plt.cm.Reds)
             figname = sspfn.replace('.csv', '.pdf')
             plt.savefig(figname)
             plt.close()
+
+        gs = [ssp.__getattribute__(k) for k in ssp.__dict__.keys() if k.endswith('g')]
+        line += targ + '& '
+        line += ' &  '.join(['{:.3f} & {:.3f}'.format(g.mean/1., g.stddev/2) for g in gs])
+        line += r'\\ \n'
+    print(line)
     if onefig:
         fig, axs = fixcorner(fig, axs, ndim)
         figname = 'combo_{}_ssps.pdf'.format(nssps)
