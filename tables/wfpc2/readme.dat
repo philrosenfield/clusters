@@ -1,0 +1,13 @@
+Get HST Datasets to download!
+
+1. On discovery portal, narrow by SFH filters and radius
+   a. download full data table (all columns, including s_region)
+3. Use clusters.footprints.crossmatch with literature table (if not Bica2008, check hard coded column names)
+4. Use tradec.sh to cull matched csv to target, ra, dec to upload to hst search (which will return Datasets).
+5. tradec.sh result has multiple entries (for each pointing/filter). Use uniqify.py to make a culled file (could only do this at step 8, but this way is nicer for ST resources).
+6. Upload the *_uniqra.csv file to http://archive.stsci.edu/hst/search.php?form=fuf
+7. Download the file, grep for any Warnings (typically, header row or RA being Dataset see tradec.sh)
+   a. remove Input lines from file with rmInputline.sh
+   b. uniqify by Dataset (uniqify.py -c Dataset)
+8. Cut *unique_Dataset.csv to first column with cut_by_dataset.sh
+9. Upload step 8 result file or paste its contents into http://archive.stsci.edu/cgi-bin/dataset_lookup

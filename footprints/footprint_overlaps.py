@@ -27,7 +27,8 @@ from ..utils import replace_all
 import numpy as np
 import pandas as pd
 from shapely.geometry import Polygon
-from fitshelper.footprints import parse_footprint, parse_poly
+from fitshelper.footprints import (parse_footprint, parse_poly, group_polygons,
+    split_polygons)
 seaborn.set()
 
 
@@ -103,51 +104,6 @@ def read_footprints(filename, instrument=None):
         data['instrument'] = [l.split(';')[0].split('/')[0] for l in radecs]
 
     return data, s_region
-
-
-def split_polygons(polygonlist, tol=49.):
-    """
-    Return list of polygons that intersect with the first value and
-    a list of polygons that do not interesect with the first value.
-    """
-    ins = []
-    outs = []
-    if len(polygonlist) > 0:
-        ply0 = polygonlist[0]
-        ins.append(ply0)
-        for i in range(len(polygonlist) - 1):
-            ply = polygonlist[i + 1]
-            if ply0.intersects(ply):
-                olap = ply0.intersection(ply).area / ply.area * 100
-                if olap > tol:
-                    ins.append(ply)
-                else:
-                    # print(olap)
-                    outs.append(ply)
-            else:
-                outs.append(ply)
-    return ins, outs
-
-
-def group_polygons(polylist, return_index=False):
-    """
-    group a list of Polygons into ones that intersect with eachother
-    option to return the index of the origional list
-    """
-    npolys = len(polylist)
-    outs = polylist
-    groups = []
-    while len(outs) != 0:
-        ins, outs = split_polygons(outs)
-        if len(ins) > 0:
-            groups.append(ins)
-    assert npolys == np.sum([len(g) for g in groups]), 'lost polygons'
-    retv = groups
-    if return_index:
-        inds = [np.concatenate([[i for (i, p) in enumerate(polylist) if p == g]
-                                for g in group]) for group in groups]
-        retv = (groups, inds)
-    return retv
 
 
 def notoverlapping():

@@ -44,7 +44,7 @@ def polygon_line(name, polygon_array, color='#ee2345', lw=3):
             continue
         line = line.replace('\'', '')
         # LAZY: could use astropy to convert coord systems
-        repd = {'J2000 ': '', 'GSC1 ': '', 'ICRS ': '', 'OTHER': ''}
+        repd = {'j2000 ': '', 'gsc1 ': '', 'icrs ': '', 'other': ''}
         poly_line = replace_all(line, repd).split('POLYGON ')[1:]
         if len(poly_line) > 1:
             for line in poly_line:
