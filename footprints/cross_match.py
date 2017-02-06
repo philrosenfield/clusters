@@ -12,8 +12,14 @@ from shapely.geometry import Polygon, Point
 from fitshelper.footprints import merge_polygons, parse_poly, group_polygons
 # seaborn.set()
 
-def cross_match(lit_cat, mast_cat, plot=False):
-    mast = pd.read_csv(mast_cat, header=4)
+def cross_match(lit_cat, mast_cat, plot=False, ra='RAJ2000',
+                dec='DEJ2000'):
+    if plot:
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots()
+
+    # mast = pd.read_csv(mast_cat, header=4)
+    mast = pd.read_csv(mast_cat,  header=0, skiprows=[0])
     mast['group'] = np.nan
     mast['litidx'] = np.nan
 
@@ -21,7 +27,7 @@ def cross_match(lit_cat, mast_cat, plot=False):
     lit['group'] = np.nan
 
     # column labels may need be be generalized.
-    radecs = [Point(r,d) for r,d in zip(lit['RAJ2000'], lit['DEJ2000'])]
+    radecs = [Point(r,d) for r,d in zip(lit[ra], lit[dec])]
 
     plys = [Polygon(parse_poly(mast['s_region'].iloc[i]))
             for i in range(len(mast['s_region']))]
@@ -41,8 +47,8 @@ def cross_match(lit_cat, mast_cat, plot=False):
     for g, pdict in group.items():
         for i, radec in enumerate(radecs):
             # Ignore single filter observations (1-item groups)
-            if len(pdict['inds']) == 1 or len(np.unique(mast.iloc[pdict['inds']].filters)) < 2:
-                # print(np.unique(mast.iloc[pdict['inds']].filters))
+            if len(pdict['inds']) == 1 or \
+                len(np.unique(mast.iloc[pdict['inds']].filters)) < 2:
                 continue
             # Is the radec point in the s_region?
             if pdict['p'].contains(radec):
@@ -60,16 +66,21 @@ def cross_match(lit_cat, mast_cat, plot=False):
                 mast['litidx'].iloc[pdict['inds']] = i
 
                 if plot:
-                    p = np.array(radec.to_wkt().replace('POINT (', '').replace(')','').split(), dtype=float)
+                    p = np.array(radec.to_wkt()
+                                      .replace('POINT (', '')
+                                      .replace(')','').split(), dtype=float)
                     v = parse_poly(pdict['p'].to_wkt())
                     ax.plot(v[:, 0], v[:, 1])
                     ax.plot(p[0], p[1], 'o')
 
     fins, = np.nonzero(np.isfinite(mast['litidx']))
-    print('{} matches.'.format(len(fins)))
+    print('{} lit values, {} MAST values, {} matches.'.format(len(radecs),
+                                                              len(plys),
+                                                              len(fins)))
     df = mast.loc[fins]
-    fname = '{}_matched_{}'.format(os.path.split(mast_cat.replace('.csv', ''))[1],
-                                   os.path.split(lit_cat)[1])
+    fname = \
+        '{}_matched_{}'.format(os.path.split(mast_cat.replace('.csv',''))[1],
+                               os.path.split(lit_cat)[1])
     df.to_csv(fname, index=False)
     #TO DO write out lit.to_csv
 
@@ -79,10 +90,17 @@ def cross_match(lit_cat, mast_cat, plot=False):
 
 
 def parse_args(argv=None):
-    parser = argparse.ArgumentParser(description="stats for calcsfh -ssp")
+    parser = argparse.ArgumentParser(
+        description="cross match a literature catalog with a MAST catalog")
 
     parser.add_argument('-p', '--plot', action='store_true',
                         help='make a plot')
+
+    parser.add_argument('--ra', type=str, default='RAJ2000',
+                        help='literature ra column name')
+
+    parser.add_argument('--dec', type=str, default='DEJ2000',
+                        help='literature dec column name')
 
     parser.add_argument('lit_cat', type=str,
                         help='literature catalog')
@@ -95,7 +113,8 @@ def parse_args(argv=None):
 
 def main(argv=None):
     args = parse_args(argv)
-    cross_match(args.lit_cat, args.mast_cat, plot=args.plot)
+    cross_match(args.lit_cat, args.mast_cat, plot=args.plot, ra=args.ra,
+                dec=args.dec)
 
 if __name__ == "__main__":
     sys.exit(main())

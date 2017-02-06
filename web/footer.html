@@ -1,0 +1,61 @@
+<body onload="initialize()" >
+<!-- The body section creates a table with two columns. The first contains the -->
+<!-- canvas object that the WWT web client uses as the render target. And the second a table within-->
+<!-- the table, containing some buttons and checkboxes.-->
+<table border="2" bgcolor="lightgrey">
+   <tr><td>
+       <div id="WorldWideTelescopeControlHost">
+
+           <div id="WWTCanvas" style="width: 750px; height: 750px; border-style: none; border-width: 0px;">
+           </div>
+   </div>
+   </td><td>
+    <table border="2" cellspacing="4" cellpadding="4" bgcolor="gold">
+
+   <tr>
+   <th colspan="2"><h2>WWT Web Client Poly</h2></th>
+   </tr>
+
+   <tr>
+   <th colspan = "2">
+   <input type="button" id="Sagittarius" value="Goto Sagittarius" onclick="GotoConstellation('Sagittarius')"/>
+   <input type="button" id="Aquarius" value="Goto Aquarius" onclick="GotoConstellation('Aquarius')"/></th>
+   </tr>
+    <tr>
+   <th colspan = "2">Settings</th>
+   </tr>
+
+<!--    <tr>
+       <td> Show UI </td>
+       <td> <input id="UI" type="checkbox" checked="checked" onclick="toggleSetting('ShowUI');"/></td>
+    </tr>-->
+
+   <tr>
+       <td> Show Crosshairs</td>
+       <td> <input id="Crosshairs" type="checkbox" checked="checked" onclick="toggleSetting('ShowCrosshairs');"/></td>
+    </tr>
+    <tr>
+       <td> Show Figures </td>
+       <td> <input id="Figures" type="checkbox" checked="checked" onclick="toggleSetting('ShowFigures');"/></td>
+    </tr>
+       <tr>
+   <th colspan = "2">Annotations</th>
+   </tr>
+       <tr>
+       <td> Show Circles </td>
+       <td> <input id="Circle" type="checkbox"  onclick="toggleSetting('ShowCircles');"/></td>
+   </tr>
+       <tr>
+       <td> Show Polygon </td>
+       <td> <input id="Polygon" type="checkbox" onclick="toggleSetting('ShowPolygon');"/></td>
+   </tr>
+           <tr>
+       <td> Show PolyLine </td>
+       <td> <input id="PolyLine" type="checkbox" onclick="toggleSetting('ShowPolyLine');"/></td>
+   </tr>
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>
