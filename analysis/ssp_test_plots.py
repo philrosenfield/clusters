@@ -108,17 +108,17 @@ def bycov(sspfns, oned=True, twod=False, onefig=False):
 
 
 def cluster_result_plots(sspfns, oned=False, twod=False, onefig=False,
-                         mist=False):
+                         mist=False, gauss=False, quantile=True):
     """corner plot of a big combine scrn output"""
     labelfmt = r'$\rm{{{}}}$'
     avoid_list = ['sfr', 'fit', 'dmag_min', 'vstep', 'vistep', 'tbin', 'ssp',
-                  'trueov']
+                  'trueov', 'dav']
     if mist:
         avoid_list = ['sfr', 'fit', 'dmag_min', 'vstep', 'vistep', 'ssp',
                       'trueov', 'dav']
 
     # This assures the same order on the plots, though they are default in ssp
-    marg_cols = ['Av', 'dav', 'dmod', 'lage', 'logZ', 'ov']
+    marg_cols = ['Av', 'dmod', 'lage', 'logZ', 'ov']
     if mist:
         marg_cols = ['Av', 'dmod', 'lage', 'logZ', 'vvcrit', 'tbin']
     frompost = False
@@ -129,7 +129,7 @@ def cluster_result_plots(sspfns, oned=False, twod=False, onefig=False,
     line = ''
     if onefig:
         fig, axs = plt.subplots(nrows=nssps, ncols=ndim,
-                                figsize=(ndim * 1.4, nssps))
+                                figsize=(ndim * 1.7, nssps))
 
     for i, sspfn in enumerate(sspfns):
         print(sspfn)
@@ -151,7 +151,8 @@ def cluster_result_plots(sspfns, oned=False, twod=False, onefig=False,
 
         if oned:
             f, raxs = ssp.pdf_plots(marginals=marg_cols, text=label, axs=axs[i],
-                                    gauss1D=True, fig=fig, frompost=frompost)
+                                    quantile=True, fig=fig, frompost=frompost,
+                                    gauss1D=gauss)
 
             if not onefig:
                 figname = sspfn.replace('.csv', '_1d.pdf')
@@ -165,16 +166,20 @@ def cluster_result_plots(sspfns, oned=False, twod=False, onefig=False,
                 ssp.write_posterior(filename='{}_post.dat'.format(targ))
 
         if twod:
-            ssp.pdf_plots(marginals=marg_cols, text=label, twod=True,
-                          gauss1D=True, cmap=plt.cm.Reds)
+            ssp.pdf_plots(marginals=marg_cols, twod=True, quantile=True,
+                          cmap=plt.cm.Reds)
             figname = sspfn.replace('.csv', '.pdf')
             plt.savefig(figname)
             plt.close()
 
-        gs = [ssp.__getattribute__(k) for k in ssp.__dict__.keys() if k.endswith('g')]
+        gs = [ssp.__getattribute__(k + 'g') for k in marg_cols]
         line += targ + '& '
-        line += ' &  '.join(['{:.3f} & {:.3f}'.format(g.mean/1., g.stddev/2) for g in gs])
-        line += r'\\ \n'
+        if gauss:
+            line += ' &  '.join(['{:.3f} & {:.3f}'.format(g.mean/1., g.stddev/2.) for g in gs])
+        else:
+            line += ' &  '.join(['${:.3f}\pm^{{+{:.3f}}}_{{-{:.3f}}}$'.format(g[2], np.abs(g[2]-g[0]), np.abs(g[2]-g[1])) for g in gs])
+        line += r'\\'
+        line += '\n'
     print(line)
     if onefig:
         fig, axs = fixcorner(fig, axs, ndim)
@@ -192,10 +197,10 @@ def fixcorner(fig, axs, ndim):
     # dmod hack:
     [ax.locator_params(axis='x', nbins=4) for ax in axs.ravel()]
     [ax.locator_params(axis='x', nbins=3) for ax in axs.T[2]]
-    fig.text(0.02, 0.5, labelfmt.format('Probability'), ha='center',
+    fig.text(0.02, 0.5, labelfmt.format('\ln\ Probability'), ha='center',
              va='center', rotation='vertical')
-    fig.subplots_adjust(hspace=0.08, wspace=0.1, right=0.95, top=0.98,
-                        bottom=0.08)
+    fig.subplots_adjust(hspace=0.15, wspace=0.15, right=0.95, top=0.98,
+                        bottom=0.1)
 
     unify_axlims(axs)
     return fig, axs
