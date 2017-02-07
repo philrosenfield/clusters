@@ -1,3 +1,20 @@
+#!/astro/apps6/anaconda2.0/bin/python
+"""
+move all fits files in current directory to directory structure based on fits
+header:
+./[INSTRUME]/[PROPOSID]_[TARGNAME]/
+
+(will make the directories if they do not exist.)
+"""
+import argparse
+import glob
+import os
+import sys
+
+from astropy.io import fits
+import numpy as np
+from scipy.spatial import KDTree
+from time import localtime, strftime
 
 def unique2d(a):
     return np.array(list(set(tuple(i) for i in a.tolist())))
