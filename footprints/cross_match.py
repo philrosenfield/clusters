@@ -78,6 +78,7 @@ def cross_match(lit_cat, mast_cat, plot=False, ra='RAJ2000',
                                                               len(plys),
                                                               len(fins)))
     df = mast.loc[fins]
+    df['SimbadName'] = lit.iloc[df['litidx']]['SimbadName'].tolist()
     fname = \
         '{}_matched_{}'.format(os.path.split(mast_cat.replace('.csv',''))[1],
                                os.path.split(lit_cat)[1])
