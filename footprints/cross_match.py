@@ -12,16 +12,51 @@ from shapely.geometry import Polygon, Point
 
 def cross_match(lit_cat, mast_cat, plot=False, ra='RAJ2000',
                 dec='DEJ2000', namecol='SimbadName'):
+    """
+    Cross match a literature catalog (of points) with a MAST Discovery
+    Portal catalog (with polygons as s_regions).
+
+    Parameters
+    ----------
+    lit_cat : str
+        filename of the literature catalog
+
+    mast_cat : str
+        filename of the MAST Discovery Portal catalog
+    plot : bool [False]
+        make a plot of the matched catalogs.
+        (probably better to upload them back to MAST)
+    ra : str [RAJ2000]
+        ra column name
+    dec : str [DEJ2000]
+        dec column name
+    namecol : str [SimbadName]
+        name of column from lit_cat to add to new matched catalog
+
+    Returns
+    -------
+    file: [mast_cat]_matched_[lit_cat].csv
+    A culled mast_cat to matches to lit_cat
+    will have columns "group" and "litidx"
+        group : s_regions that are likely covering (>49%) the same area
+        litidx : the matched index (line not counting headers) from the lit_cat.
+    """
     if plot:
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots()
 
-    mast = pd.read_csv(mast_cat, header=4)
-    # mast = pd.read_csv(mast_cat,  header=0, skiprows=[0])
-    mast['group'] = np.nan
-    mast['litidx'] = np.nan
+    # this code can also be used to cross match the HST query result
+    # against a MAST catalog. So the "matched" catalog will be read in
+    # and has a different header than the one downloaded directly from
+    # the Discovery Portal.
+    if 'matched' in mast_cat:
+        mast = pd.read_csv(mast_cat,  header=0, skiprows=[1])
+    else:
+        mast = pd.read_csv(mast_cat, header=4)
+        mast['group'] = np.nan
+        mast['litidx'] = np.nan
 
-    lit = pd.read_csv(lit_cat,  header=0, skiprows=[1])
+    lit = pd.read_csv(lit_cat,  header=0, skiprows=[0])
     lit['group'] = np.nan
 
     radecs = [Point(r,d) for r,d in zip(lit[ra], lit[dec])]
@@ -110,7 +145,10 @@ def parse_args(argv=None):
                         help='literature catalog')
 
     parser.add_argument('mast_cat', type=str,
-                        help='MAST catalog')
+                        help='MAST catalog (or the one with s_region)')
+
+    parser.add_argument('--namecol', type=str, default='SimbadName',
+                        help='Column from lit to add to MAST')
 
     return parser.parse_args(argv)
 
@@ -118,7 +156,8 @@ def parse_args(argv=None):
 def main(argv=None):
     args = parse_args(argv)
     cross_match(args.lit_cat, args.mast_cat, plot=args.plot, ra=args.ra,
-                dec=args.dec)
+                dec=args.dec, namecol=args.namecol)
+
 
 if __name__ == "__main__":
     sys.exit(main())

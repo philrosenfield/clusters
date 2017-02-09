@@ -8,7 +8,7 @@
    * Use clusters.footprints.crossmatch with literature table
    (if not Bica2008, check hard coded column names)
    * `filename: MAST_...matched_Bica2008.csv`
-   * `$ python -m clusters.footprints.crossmatch littable MASTtable`
+   * `$ python -m clusters.footprints.cross_match littable MASTtable`
 4. Cull cross matched table for input to HST to identify data sets to retrieve.
    *Use tradec.sh to cull matched csv to target, ra, dec to upload to hst search
    * `$ tradec.sh inputfile outputfile`
@@ -27,6 +27,7 @@
           `grep -E "F336W|F225W|F275W|F555W|F439W|F450W|F606W|F814W"`
    *    Search output format: csv
    *    Max record for target: max
+   *    Select degrees for units
 7. Download the file, varify, format, and uniqify.
    * $ grep Warnings and no rows found in [7]
    (typically, header row or RA being Dataset see source tradec.sh)
@@ -49,4 +50,7 @@
    * `$ cut_by_dataset.sh [8] > [9]`
 10. Upload [9] or paste its contents into
    [hst dataset lookup ](http://archive.stsci.edu/cgi-bin/dataset_lookup)
-11. Decide whether or not to uncheck unnecessary filters or just download them...
+11. Decide whether or not to uncheck unnecessary filters or just download them all
+12. Add dataset to [7]
+   * `$ python -m clusters.footprints.cross_match [7] [1]`
+   * may need to mess around with cross_match file reader or the headers of [7] and [1]...
