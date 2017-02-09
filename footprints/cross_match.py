@@ -2,31 +2,28 @@ from __future__ import print_function
 import argparse
 import os
 import sys
-import seaborn
 
-# from ..utils import replace_all
+from collections import OrderedDict
 import numpy as np
 import pandas as pd
-from collections import OrderedDict
-from shapely.geometry import Polygon, Point
+
 from fitshelper.footprints import merge_polygons, parse_poly, group_polygons
-# seaborn.set()
+from shapely.geometry import Polygon, Point
 
 def cross_match(lit_cat, mast_cat, plot=False, ra='RAJ2000',
-                dec='DEJ2000'):
+                dec='DEJ2000', namecol='SimbadName'):
     if plot:
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots()
 
-    # mast = pd.read_csv(mast_cat, header=4)
-    mast = pd.read_csv(mast_cat,  header=0, skiprows=[0])
+    mast = pd.read_csv(mast_cat, header=4)
+    # mast = pd.read_csv(mast_cat,  header=0, skiprows=[0])
     mast['group'] = np.nan
     mast['litidx'] = np.nan
 
     lit = pd.read_csv(lit_cat,  header=0, skiprows=[1])
     lit['group'] = np.nan
 
-    # column labels may need be be generalized.
     radecs = [Point(r,d) for r,d in zip(lit[ra], lit[dec])]
 
     plys = [Polygon(parse_poly(mast['s_region'].iloc[i]))
@@ -78,12 +75,18 @@ def cross_match(lit_cat, mast_cat, plot=False, ra='RAJ2000',
                                                               len(plys),
                                                               len(fins)))
     df = mast.loc[fins]
-    df['SimbadName'] = lit.iloc[df['litidx']]['SimbadName'].tolist()
+
+    if namecol in lit.columns:
+        df[namecol] = lit.iloc[df['litidx']][namecol].tolist()
+    else:
+        print('{0:s} not found in lit cat, will not add a name column'
+              .format(namecol))
+
     fname = \
         '{}_matched_{}'.format(os.path.split(mast_cat.replace('.csv',''))[1],
                                os.path.split(lit_cat)[1])
     df.to_csv(fname, index=False)
-    #TO DO write out lit.to_csv
+    #write out lit.to_csv?
 
     if plot:
         plt.savefig('cross_match.png')
