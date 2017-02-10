@@ -21,15 +21,13 @@ from __future__ import print_function
 import itertools
 import os
 import sys
-import seaborn
 
 from ..utils import replace_all
 import numpy as np
 import pandas as pd
 from shapely.geometry import Polygon
 from fitshelper.footprints import (parse_footprint, parse_poly, group_polygons,
-    split_polygons)
-seaborn.set()
+    split_polygons, find_footprint)
 
 
 def parse_footprints(fnames):
@@ -322,6 +320,6 @@ def main(percent_tolerance=49.):
         fix_overlaps(test_file=True)
     return
 
-
+    
 if __name__ == "__main__":
     main(percent_tolerance=49.)
