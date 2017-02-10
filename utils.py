@@ -31,3 +31,21 @@ def center_from_simbad(target):
     radec = SkyCoord(ra=sstr(qry['RA']), dec=sstr(qry['DEC']),
                      unit=(u.hourangle, u.deg))
     return radec.ra.value, radec.dec.value
+
+
+def fixnames(data):
+    """
+    Mark empty names with NONAME not np.nan.
+    Also remove spaces and "Cl" and []
+    """
+    for i in range(len(data.SimbadName)):
+        try:
+            float(data.loc[i].SimbadName)
+            data.SimbadName.iloc[i] = 'NONAME'
+        except:
+            pass
+
+    repd = {' ': '', '[': '', ']': '', 'Cl': ''}
+    names = [replace_all(l, repd) for l in data.SimbadName]
+    data.SimbadName = names
+    return data

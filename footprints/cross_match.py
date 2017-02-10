@@ -10,6 +10,9 @@ import pandas as pd
 from fitshelper.footprints import merge_polygons, parse_poly, group_polygons
 from shapely.geometry import Polygon, Point
 
+from ..utils import fixnames
+
+
 def cross_match(lit_cat, mast_cat, plot=False, ra='RAJ2000',
                 dec='DEJ2000', namecol='SimbadName'):
     """
@@ -23,13 +26,17 @@ def cross_match(lit_cat, mast_cat, plot=False, ra='RAJ2000',
 
     mast_cat : str
         filename of the MAST Discovery Portal catalog
+
     plot : bool [False]
         make a plot of the matched catalogs.
         (probably better to upload them back to MAST)
+
     ra : str [RAJ2000]
         ra column name
+
     dec : str [DEJ2000]
         dec column name
+
     namecol : str [SimbadName]
         name of column from lit_cat to add to new matched catalog
 
@@ -72,10 +79,20 @@ def cross_match(lit_cat, mast_cat, plot=False, ra='RAJ2000',
         lit = pd.read_csv(lit_cat,  header=0, skiprows=[0])
         lit[ra]
     except KeyError:
-        lit = pd.read_csv(lit_cat,  header=1, skiprows=[0])
+        lit = pd.read_csv(lit_cat,  header=0, skiprows=[0])
         lit[ra]
 
     lit[gstr] = np.nan
+
+    if namecol in mast.columns:
+        # the lit_cat should be the basis of the output file.
+        savelit = True
+        mast = fixnames(mast)
+        lit[namecol] = np.nan
+    else:
+        savelit = False
+        lit = fixnames(lit)
+
     radecs = [Point(r,d) for r,d in zip(lit[ra], lit[dec])]
 
     plys = [Polygon(parse_poly(mast['s_region'].iloc[i]))
@@ -111,6 +128,10 @@ def cross_match(lit_cat, mast_cat, plot=False, ra='RAJ2000',
                                                      for t in [tmp, g]])
                 # add group id to literature table
                 lit[gstr].iloc[i] = g
+                if savelit:
+                    if len(np.unique(mast.iloc[pdict['inds']][namecol])) > 1:
+                        import pdb; pdb.set_trace()
+                    lit[namecol].iloc[i] = np.unique(mast.iloc[pdict['inds']][namecol])[0]
                 # add literature index to the mast table
                 mast[lstr].iloc[pdict['inds']] = i
 
@@ -126,13 +147,15 @@ def cross_match(lit_cat, mast_cat, plot=False, ra='RAJ2000',
     print('{} lit values, {} MAST values, {} matches.'.format(len(radecs),
                                                               len(plys),
                                                               len(fins)))
-    df = mast.loc[fins]
-
-    if namecol in lit.columns:
-        df[namecol] = lit.iloc[df[lstr]][namecol].tolist()
+    if savelit:
+        df = lit
     else:
-        print('{0:s} not found in lit cat, will not add a name column'
-              .format(namecol))
+        df = mast.loc[fins]
+        if namecol in lit.columns:
+            df[namecol] = lit.iloc[df[lstr]][namecol].tolist()
+        else:
+            print('{0:s} not found in lit cat, will not add a name column'
+                  .format(namecol))
 
     fname = \
         '{}_matched_{}'.format(os.path.split(mast_cat.replace('.csv',''))[1],
