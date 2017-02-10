@@ -51,6 +51,9 @@
 10. Upload [9] or paste its contents into
    [hst dataset lookup ](http://archive.stsci.edu/cgi-bin/dataset_lookup)
 11. Decide whether or not to uncheck unnecessary filters or just download them all
-12. Add dataset to [7]
-   * `$ python -m clusters.footprints.cross_match [7] [1]`
-   * may need to mess around with cross_match file reader or the headers of [7] and [1]...
+   * cutfilters.sh (in downloaded directory)
+12. Make a MASTlike table of the downloaded files
+   * `$ python clusters.data_wrangling.mastlike_table *drz*fits`
+13. Cross match [12] with [2]
+   * `$ python -m clusters.footprints.cross_match [12] [1]`
+   * rename [13] final_table.csv

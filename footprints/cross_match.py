@@ -49,16 +49,33 @@ def cross_match(lit_cat, mast_cat, plot=False, ra='RAJ2000',
     # against a MAST catalog. So the "matched" catalog will be read in
     # and has a different header than the one downloaded directly from
     # the Discovery Portal.
-    if 'matched' in mast_cat:
-        mast = pd.read_csv(mast_cat,  header=0, skiprows=[1])
-    else:
+    # This try/except attepts to raise a KeyError if the header isn't
+    # read correctly.
+    try:
         mast = pd.read_csv(mast_cat, header=4)
-        mast['group'] = np.nan
-        mast['litidx'] = np.nan
+        mast['s_region']
+    except KeyError:
+        mast = pd.read_csv(mast_cat,  header=0, skiprows=[1])
+        mast['s_region']
 
-    lit = pd.read_csv(lit_cat,  header=0, skiprows=[0])
-    lit['group'] = np.nan
+    gstr = 'group'
+    if gstr in mast.columns:
+        gstr += '1'
+    mast[gstr] = np.nan
 
+    lstr = 'litidx'
+    if lstr in mast.columns:
+        lstr += '1'
+    mast[lstr] = np.nan
+
+    try:
+        lit = pd.read_csv(lit_cat,  header=0, skiprows=[0])
+        lit[ra]
+    except KeyError:
+        lit = pd.read_csv(lit_cat,  header=1, skiprows=[0])
+        lit[ra]
+
+    lit[gstr] = np.nan
     radecs = [Point(r,d) for r,d in zip(lit[ra], lit[dec])]
 
     plys = [Polygon(parse_poly(mast['s_region'].iloc[i]))
@@ -73,7 +90,7 @@ def cross_match(lit_cat, mast_cat, plot=False, ra='RAJ2000',
         p, inds = merge_polygons(g)
         group[i] = ({'p': p, 'inds': inds})
         # Assign group id to mast table
-        mast['group'].iloc[inds] = i
+        mast[gstr].iloc[inds] = i
 
     # loop through all combinations
     for g, pdict in group.items():
@@ -84,18 +101,18 @@ def cross_match(lit_cat, mast_cat, plot=False, ra='RAJ2000',
                 continue
             # Is the radec point in the s_region?
             if pdict['p'].contains(radec):
-                if np.isfinite(lit['group'].iloc[i]):
+                if np.isfinite(lit[gstr].iloc[i]):
                     # there are complex regions that are not grouped together
                     # so more than one radec point can be in a polygon.
                     # there has to be a better way than making a single item
                     # string...
-                    tmp = lit['group'].iloc[i]
-                    lit['group'].iloc[i] = ','.join(['{:g}'.format(t)
+                    tmp = lit[gstr].iloc[i]
+                    lit[gstr].iloc[i] = ','.join(['{:g}'.format(t)
                                                      for t in [tmp, g]])
                 # add group id to literature table
-                lit['group'].iloc[i] = g
+                lit[gstr].iloc[i] = g
                 # add literature index to the mast table
-                mast['litidx'].iloc[pdict['inds']] = i
+                mast[lstr].iloc[pdict['inds']] = i
 
                 if plot:
                     p = np.array(radec.to_wkt()
@@ -105,14 +122,14 @@ def cross_match(lit_cat, mast_cat, plot=False, ra='RAJ2000',
                     ax.plot(v[:, 0], v[:, 1])
                     ax.plot(p[0], p[1], 'o')
 
-    fins, = np.nonzero(np.isfinite(mast['litidx']))
+    fins, = np.nonzero(np.isfinite(mast[lstr]))
     print('{} lit values, {} MAST values, {} matches.'.format(len(radecs),
                                                               len(plys),
                                                               len(fins)))
     df = mast.loc[fins]
 
     if namecol in lit.columns:
-        df[namecol] = lit.iloc[df['litidx']][namecol].tolist()
+        df[namecol] = lit.iloc[df[lstr]][namecol].tolist()
     else:
         print('{0:s} not found in lit cat, will not add a name column'
               .format(namecol))
