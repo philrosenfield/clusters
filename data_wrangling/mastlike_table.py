@@ -10,9 +10,9 @@ dataproduct_type,obs_collection,instrument_name,project,filters,wavelength_regio
 """
 
 def foot2s_region(foot):
-   return 'POLYGON J2000 {0!s}'.format(list(foot.ravel()))
-                               .replace(',', '')
-                               .replace('[','')
+   return 'POLYGON J2000 {0!s}'.format(list(foot.ravel())) \
+                               .replace(',', '') \
+                               .replace('[','') \
                                .replace(']','')
 
 def mast_like(fitsfiles, outfile=None):
