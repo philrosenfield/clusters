@@ -54,6 +54,6 @@
    * cutfilters.sh (in downloaded directory)
 12. Make a MASTlike table of the downloaded files
    * `$ python clusters.data_wrangling.mastlike_table *drz*fits`
-13. Cross match [12] with [2]
-   * `$ python -m clusters.footprints.cross_match [12] [1]`
+13. Cross match [12] with [2] adding Dataset (actual downloaded dataset)
+   * `$ python -m clusters.footprints.cross_match [12] [1] --ra s_ra --dec s_dec --namecol Dataset`
    * rename [13] final_table.csv
