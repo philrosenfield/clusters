@@ -33,8 +33,6 @@ def create_dirstruct(table, outfile=None, propid='13901'):
     tab = fixnames(pd.read_csv(table, header=0))
     line = ''
     for name in np.unique(tab.SimbadName):
-        if name == "NONAME":
-            continue
         inds, = np.nonzero(tab.SimbadName == name)
         pids = np.unique(tab.proposal_id.iloc[inds])
         if len(pids) > 1:
