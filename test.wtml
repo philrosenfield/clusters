@@ -11,7 +11,7 @@
      Name="Serpens Dark Cloud"
      DataSetType="Sky"
      RA="85.5994550000"
-     DEC="-4.94660910000">
+     Dec="-4.94660910000">
 
      <Target>Undefined</Target>
      <ForegroundImageSet>
