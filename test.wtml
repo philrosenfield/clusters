@@ -10,8 +10,8 @@
    <Place
      Name="Serpens Dark Cloud"
      DataSetType="Sky"
-     RA="85.5994550000"
-     Dec="-4.94660910000">
+     RA="201.36542"
+     Dec="-43.019319">
 
      <Target>Undefined</Target>
      <ForegroundImageSet>
@@ -21,7 +21,14 @@
          BandPass="Visible"
          Url="http://images.ipac.caltech.edu/eso/eso0903a/eso_eso0903a_1600.jpg"
          Name="1120 micron  image of the Serpens Dark Cloud;Serpens;Serpens Dark Cloud"
-         FileType=".jpg">
+         FileType=".jpg"
+         Scale="0.8969793887475002"
+         Rotation="180.03674151123"
+         RA="201.36542"
+         Dec="-43.019319"
+         centerY="792.9477536313832"
+         centerX="763.3289621102468"
+         >
 
          <Credits>Enoch/COMPLETE/CSO1120 micron  image of the Serpens Dark Cloud.  Data were taken May-June 2003 and 2005. Flux units are in mJy per 31 arcsecond beam.
 
