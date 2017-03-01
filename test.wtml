@@ -11,7 +11,15 @@
      Name="Serpens Dark Cloud"
      DataSetType="Sky"
      RA="201.36542"
-     Dec="-43.019319">
+     Dec="-43.019319"
+     Classification="Unfiltered"
+     Magnitude="0"
+     Distance="0"
+     ZoomLevel="61.76666816142"
+     Rotation="0"
+     Angle="0"
+     Opacity="100"
+     AngularSize="1">
 
      <Target>Undefined</Target>
      <ForegroundImageSet>
