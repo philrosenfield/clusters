@@ -3,10 +3,8 @@
      Group="Explorer"
      Searchable="True"
      Type="Sky"
-     Thumbnail="C:\~\Images\T_Earth.jpg">
-
-       <VersionDependent>false</VersionDependent>
-
+     Thumbnail="">
+     <VersionDependent>false</VersionDependent>
    <Place
      Name="Serpens Dark Cloud"
      DataSetType="Sky"
@@ -16,13 +14,10 @@
      Constellarion="CEN"
      Magnitude="0"
      Distance="0"
-     ZoomLevel="61.76666816142"
      Url="http://images.ipac.caltech.edu/eso/eso0903a/eso_eso0903a_1600.jpg"
+     Thumbnail="http://images.ipac.caltech.edu/eso/eso0903a/eso_eso0903a_100.jpg"
      FileType=".jpg"
      Scale="0.8969793887475002"
-     Rotation="180.03674151123"
-     centerY="792.9477536313832"
-     centerX="763.3289621102468"
-         >
+     Rotation="180.03674151123">
          </Place>
  </Folder>
