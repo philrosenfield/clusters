@@ -1,0 +1,33 @@
+ <Folder
+     Name="My Places"
+     Group="Explorer"
+     Searchable="True"
+     Type="Sky"
+     Thumbnail="C:\~\Images\T_Earth.jpg">
+
+       <VersionDependent>false</VersionDependent>
+
+   <Place
+     Name="Serpens Dark Cloud"
+     DataSetType="Sky">
+
+     <Target>Undefined</Target>
+     <ForegroundImageSet>
+       <ImageSet
+         Generic="False"
+         DataSetType="Sky"
+         BandPass="Visible"
+         Url="http://astropy.stsci.edu/data/tutorials/FITS-images/HorseHead.fits"
+         Name="1120 micron  image of the Serpens Dark Cloud;Serpens;Serpens Dark Cloud"
+         FileType=".fits">
+
+         <Credits>Enoch/COMPLETE/CSO1120 micron  image of the Serpens Dark Cloud.  Data were taken May-June 2003 and 2005. Flux units are in mJy per 31 arcsecond beam.
+
+ Reference:  Melissa Enoch et al., Comparing Star Formation on Large Scales in the c2d Legacy Clouds: Bolocam 1.1 mm Dust Continuum Surveys of Serpens, Perseus, and Ophiuchus, ApJ, 2007, 666, 982
+         </Credits>
+         <CreditsUrl>http://www.cfa.harvard.edu/COMPLETE/data_html_pages/SerA_1120uBolo_F.html</CreditsUrl>
+         <ThumbnailUrl>http://www.cfa.harvard.edu/~gmuench/wwtimages/161419573.jpg</ThumbnailUrl>
+       </ImageSet>
+     </ForegroundImageSet>
+   </Place>
+ </Folder>
