@@ -2,18 +2,14 @@
      Name="My Places"
      Group="Explorer"
      Searchable="True"
-     Type="Sky"
-     Thumbnail="">
-     <VersionDependent>false</VersionDependent>
-   <Place
+     Type="Sky">
+  <Place
      Name="Serpens Dark Cloud"
      DataSetType="Sky"
      RA="201.36542"
      Dec="-43.019319"
      Classification="Galaxy"
      Constellarion="CEN"
-     Magnitude="0"
-     Distance="0"
      Url="http://images.ipac.caltech.edu/eso/eso0903a/eso_eso0903a_1600.jpg"
      FileType=".jpg"
      Scale="0.8969793887475002"
