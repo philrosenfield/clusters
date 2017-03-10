@@ -1,29 +1,14 @@
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
+import argparse
+import sys
 import os
 
+import numpy as np
+import pandas as pd
+
+from collections import OrderedDict
 from scipy import optimize
-from collections import OrderedDict, defaultdict
-import seaborn as sns
 
-plt.style.use('presentation')
-sns.set_style('ticks')
-sns.set_context('paper', font_scale=1.5)
-
-
-def gaussian(p, x):
-    """ p = [mu, sig, max=[1.], offset=[0.]]"""
-    if np.shape(p)[0] == 2:
-        p = np.append(p, 1.)
-    if np.shape(p)[0] == 3:
-        p = np.append(p, 0.)
-
-    return p[3] + p[2] / (p[1] * np.sqrt(2 * np.pi)) * \
-            np.exp(-((x - p[0]) ** 2 / (2 * p[1] **2 )))
-
-def errfunc(p, x, y):
-    return y - gaussian(p, x)
+from match.scripts.utils import fitgauss1D, quantiles
 
 
 class Posterior(object):
@@ -36,8 +21,8 @@ class Posterior(object):
             self.dropna_()
 
     def dropna_(self):
-        d = {k: post.data[k].loc[np.isfinite(post.data[k])]
-             for k in post.data.columns}
+        d = {k: self.data[k].loc[np.isfinite(self.data[k])]
+             for k in self.keys}
         self.data_dict = d
         return d
 
@@ -50,18 +35,23 @@ class Posterior(object):
             bft[k].append(self.data[k][np.nanargmax(self.data[k+'prob'])])
         return pd.DataFrame(bft)
 
-    def fitgauss1D(self, attr):
+    def fitgauss1D(self, attr, norm=False):
         """Fit a 1D Gaussian to a marginalized probability
-        see .utils.fitgauss1D
+        see fitgauss1D
         sets attribute 'xattr'g
         """
         x, p = self.safe_select(attr)
+        if norm:
+            p /= p.max()
         g = utils.fitgauss1D(x, p)
         self.__setattr__('{0:s}g'.format(attr), g)
         return g
 
-    def safe_select(self, attr):
-        return self.data_dict[attr], self.data_dict[attr + 'prob']
+    def safe_select(self, attr, maskval=0):
+        v = self.data_dict[attr]
+        vprob = self.data[attr+'prob'].iloc[v.index]
+        vprob[~np.isfinite(vprob)] = maskval
+        return v, vprob
 
     def interpolate_(self, attr, res=200, k=1):
         from scipy.interpolate import splprep, splev
@@ -99,60 +89,27 @@ class Posterior(object):
             d['{}_{}'.format(xatr[1:], yatr[1:])] = rho
         return d
 
-def best_table(posterior_files):
-    df = pd.DataFrame()
-    for filename in posterior_files:
-        target = filename.split('_')[0]
-        post = Posterior(filename)
-        bf = post.best_fit()
-        bf['target'] = target
-        df = df.append(bf, ignore_index=True)
-    print(df.to_latex())
-    return df
+def combine_posterior(posts=None, filenames=None, attr='ov'):
+    fmt = r'${0:.3f}^{{+{1:.3f}}}_{{-{2:.3f}}}$'
+    if posts is None:
+        filenames = np.atleast_1d(filenames)
+        posts = [Posterior(f) for f in filenames]
+    ovs, ovprobs = zip(*[p.safe_select('ov') for p in posts])
 
-def age_ov(posterior_files, gi09=False):
-    df = best_table(posterior_files)
-    fig, ax = plt.subplots()
-    ax.errorbar(df.lage, df.ov, xerr=0.06, yerr=0.05, fmt='none', elinewidth=3,
-                color='k', label='')
-    ax.plot(df.lage, df.ov, 'o', ms=10, color='darkred', label=r'$\rm{This\ work}$')
-    if gi09:
-        # $\lambdac=0.47^{+0.14}_{-0.04}$ and $\log$ Age=$1.35^{+0.11}_{-0.04}$
-        ax.errorbar(np.array([1.35]), np.array([0.47]),
-                    xerr=[np.array([0.11]), np.array([0.04])],
-                    yerr=[np.array([0.14]), np.array([0.04])],
-                    fmt='none', elinewidth=3, color='k', label='')
-        ax.plot(1.35, 0.47, 'o', ms=10, color='gray', label=r'$\rm{Girardi\ et\ al.\ (2009)}$')
-
-    ax.set_xlabel(r'${\rm Cluster\ Age\ (Gyr)}$')
-    ax.set_ylabel(r'$\Lambda_{\rm c}\ (H_p)$')
-    plt.legend(loc='best')
-    plt.savefig('age_ov.pdf')
-    return ax
+    ovs = np.array([0.3, 0.4, 0.45, 0.5, 0.55, 0.6])
+    ovprobs = [ovp.values[:len(ovs)] for ovp in ovprobs]
+    ovprobs = np.concatenate(ovprobs).reshape(len(ovs), len(posts))
+    # add ln P to multiply posteriors
+    sovprob = np.sum(ovprobs.T, axis=1)
+    gs = quantiles(ovs, sovprob, maxp=True)
+    print(fmt.format(gs[2], gs[1]-gs[2], gs[2]-gs[0]))
 
 
-def calc_uncertainties(posterior_file):
-    post = Posterior(posterior_file)
-    bf = post.best_fit()
-    print(post.name)
-    for key in post.keys:
-        sig0 = 2 * np.unique(np.diff(post.data[key]))[0]
-        p = [bf[key][0], sig0]
-        y = post.data[key+'prob'][np.isfinite(post.data[key+'prob'])]
-        x = post.data[key][np.isfinite(post.data[key])]
-        fit, *rest = optimize.leastsq(errfunc, p, args=(x, y),
-                                     full_output=True)
-        fig, ax = plt.subplots()
-        ax.plot(x, y)
-        fwhm = 2 * np.log(2) * fit[1]
-        if rest[-1] > 4 or np.abs(fwhm) < sig0 / 2:
-            # print(rest[-2])
-            fwhm = sig0 / 2
-            bester = bf[key][0]
-        else:
-            print(key, sig0)
-            fwhm = 2 * np.log(2) * fit[1]
-            xx = np.linspace(x.iloc[0], x.iloc[-1], 100)
-            bester = xx[np.argmax(gaussian(fit, xx))]
-            ax.plot(xx, gaussian(fit, xx))
-            print('{:s} {:f} {:f}'.format(key, bester, fwhm))
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="combine PDFs")
+    parser.add_argument('filenames', type=str, nargs='*', help='posterior files')
+    args = parser.parse_args(argv)
+    combine_posterior(filenames=args.filenames)
+
+if __name__ == "__main__":
+    sys.exit(main())

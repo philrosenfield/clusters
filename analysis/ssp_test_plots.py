@@ -15,151 +15,105 @@ sns.set_style('ticks')
 sns.set_context('paper', font_scale=1.5)
 
 
-def ssp_test(sspfn):
-    # (for true9)
-    truth = {'IMF': 1.30,
-             'dmod': 18.50,
-             'Av': 0.1,
-             'dav': 0.0,
-             'dlogZ': 0.1,
-             'bf': 0.0,
-             'dmag_min': -1.5,
-             'vstep': 0.1,
-             'vistep': 0.05,
-             'logZ': -0.50,
-             'sfr': 5e-3,
-             'lage': 10 ** .3127}  # (Msun/yr need to integrate over bin size)
-    truelage0 = 10 ** .3000  # Gyr
-    truelage1 = 10 ** .3254  # Gyr
-
-    ovs = [0.3, 0.4, 0.5, 0.6]
-    ssps = [SSP(sspfn[0], gyr=True, filterby={'trueov': ov})
-            for ov in ovs]
-
-    avoid_list = ['sfr', 'fit', 'dmag_min', 'vstep', 'vistep', 'tbin', 'ssp',
-                  'trueov', 'dav']
-
-    marg_cols = [c for c in ssps[0].data.columns if c not in avoid_list]
-    fignames = ['ssp_test_ov{:.1}.pdf'.format(i) for i in ovs]
-
-    for i, ssp in enumerate(ssps):
-        if truth is not None:
-            truth['ov'] = np.unique(ssp.data['trueov'])
-        fig, axs = ssp.pdf_plots(marginals=marg_cols, truth=truth,
-                                 text=text[i], twod=True, cmap=plt.cm.Reds)
-        plt.savefig(fignames[i])
-    return
-
-
-def bycov(sspfns, oned=True, twod=False, onefig=False):
-        labelfmt = r'$\rm{{{}}}$'
-        avoid_list = ['sfr', 'fit', 'dmag_min', 'vstep', 'vistep', 'tbin', 'ssp',
-                      'trueov', 'dav', 'ov']
-
-        # This assures the same order on the plots, though they are default in ssp
-        marg_cols = ['Av', 'bf', 'dmod', 'lage', 'logZ']
-        ovs = [0.3, 0.4, 0.5, 0.6]
-        # marg_cols = ['Av', 'bf', 'dmod', 'lage', 'logZ', 'vvcrit']
-        ndim = len(marg_cols)
-        nrows = len(ovs)
-        for sspfn in sspfns:
-            print(sspfn)
-            fig = None
-            axs = [None] * len(ovs)
-            if onefig:
-                fig, axs = plt.subplots(nrows=nrows, ncols=ndim,
-                                        figsize=(ndim * 1.4, nrows))
-
-            for i, ov in enumerate(ovs):
-                ssp = SSP(sspfn, gyr=True, filterby={'IMF': 1.35,
-                                                     'ov': ov})
-                ssp.check_grid(skip_cols=avoid_list)
-
-                targ = ssp.name.split('_')[0].upper()
-                label = ''# r'\rm{{{0:s}}}\ \Lambda_\rm{{c}}={1:.1f}'.format(targ, ov)
-
-                if oned:
-                    f, raxs = ssp.pdf_plots(marginals=marg_cols, text=label,
-                                            fig=fig, axs=axs[i], gauss1D=True)
-                if not onefig:
-                    figname = sspfn.replace('.csv', 'ov{0:.1f}_1d.pdf'.foramt(ov))
-                    plt.savefig(figname)
-                    plt.close()
-                else:
-                    ylabel = r'\Lambda_c={}'.format(ov)
-                    raxs[-1].set_ylabel(ylabel)
-                    raxs[-1].yaxis.set_label_position("right")
-
-
-                ssp.write_posterior(filename='{0:s}_ov{1:.1f}_post.dat'.format(targ, ov))
-                if twod:
-                    ssp.pdf_plots(marginals=marg_cols, text=label, twod=True,
-                                  cmap=plt.cm.Reds, gauss1D=True)
-                    figname = sspfn.replace('.csv', '_ov{0:.1f}.pdf'.format(ov))
-                    plt.savefig(figname)
-                    plt.close()
-            if onefig:
-                import pdb; pdb.set_trace()
-                fig, axs = fixcorner(fig, axs, ndim)
-                figname = '{}_{}_ssps_ov.pdf'.format(targ, nrows)
-                plt.savefig(figname)
-                plt.close()
-        return
-
-
 def cluster_result_plots(sspfns, oned=False, twod=False, onefig=False,
-                         mist=False, gauss=False, quantile=True):
+                         mist=False, gauss=True, quantile=True, mock=False,
+                         ovis5=False):
     """corner plot of a big combine scrn output"""
     labelfmt = r'$\rm{{{}}}$'
+    frompost = False
+    mstr = ''
     avoid_list = ['sfr', 'fit', 'dmag_min', 'vstep', 'vistep', 'tbin', 'ssp',
                   'trueov', 'dav']
-    if mist:
-        avoid_list = ['sfr', 'fit', 'dmag_min', 'vstep', 'vistep', 'ssp',
-                      'trueov', 'dav']
 
     # This assures the same order on the plots, though they are default in ssp
     marg_cols = ['Av', 'dmod', 'lage', 'logZ', 'ov']
     if mist:
         marg_cols = ['Av', 'dmod', 'lage', 'logZ', 'vvcrit', 'tbin']
-    frompost = False
-    nssps = len(sspfns)
+    if mock or ovis5:
+        marg_cols = ['Av', 'dmod', 'lage', 'logZ']
+
+    line = ' & '.join(marg_cols) + '\n'
+
+    if mock:
+        mstr = '_test'
+        ovs = [0.3, 0.4, 0.5, 0.6]
+        ssps = [SSP(sspfns[0], gyr=True, filterby={'trueov': ov})
+                for ov in ovs]
+        name = os.path.splitext(sspfns[0])[0]
+        sspfns = ['{0:s}_trueov{1!s}.csv'.format(name, ov) for ov in ovs]
+        cmap = plt.cm.Reds
+        truth = {'IMF': 1.35,
+                 'dmod': 18.45,
+                 'Av': 0.1,
+                 'dav': 0.0,
+                 'dlogZ': 0.1,
+                 'bf': 0.3,
+                 'dmag_min': -1.5,
+                 'vstep': 0.15,
+                 'vistep': 0.05,
+                 'logZ': -0.40,
+                 'sfr': 8e-4,
+                 'lagei': 9.1673,
+                 'lagef': 9.1847}
+    else:
+        truth = {}
+        ssps = []
+        cmap = plt.cm.Blues
+        for sspfn in sspfns:
+            if sspfn.endswith('.csv'):
+                if ovis5:
+                    ssp = SSP(sspfn, gyr=True, filterby={'ov': 0.50})
+                    cmap = plt.cm.Greens
+                else:
+                    ssp = SSP(sspfn, gyr=True)
+            else:
+                ssp = SSP()
+                ssp.gyr = True
+                ssp.load_posterior(sspfn)
+                frompost = True
+            ssps.append(ssp)
+
+    nssps = len(ssps)
     ndim = len(marg_cols)
     fig = None
     axs = [None] * nssps
-    line = ''
     if onefig:
         fig, axs = plt.subplots(nrows=nssps, ncols=ndim,
                                 figsize=(ndim * 1.7, nssps))
 
-    for i, sspfn in enumerate(sspfns):
-        print(sspfn)
-        if sspfn.endswith('.csv'):
-            ssp = SSP(sspfn, gyr=True)
-            # ssp = SSP(sspfn)
-            # ssp.gyr = False
-            ssp.check_grid(skip_cols=avoid_list)
-        else:
-            ssp = SSP()
-            ssp.gyr = True
-            ssp.load_posterior(sspfn)
-            frompost = True
+    for i, ssp in enumerate(ssps):
+        ssp.check_grid(skip_cols=avoid_list)
+        sspfn = sspfns[i]
         targ = ssp.name.split('_')[0].upper()
         label = labelfmt.format(targ)
         ylabel = labelfmt.format(targ)
-        if onefig:
+        if onefig or mock:
             label = None
 
         if oned:
             f, raxs = ssp.pdf_plots(marginals=marg_cols, text=label, axs=axs[i],
                                     quantile=True, fig=fig, frompost=frompost,
-                                    gauss1D=gauss)
-
+                                    gauss1D=gauss, truth=truth)
+            if 'lagei' in list(truth.keys()):
+                j = marg_cols.index('lage')
+                agei = truth['lagei']
+                agef = truth['lagef']
+                if ssp.gyr:
+                    agei = 10 ** (agei - 9)
+                    agef = 10 ** (agef - 9)
+                raxs[j].fill_betweenx(np.linspace(*raxs[j].get_ylim()), agei,
+                                      agef, color='darkred', zorder=0)
             if not onefig:
                 figname = sspfn.replace('.csv', '_1d.pdf')
                 plt.savefig(figname)
                 plt.close()
             else:
-                raxs[-1].set_ylabel(ylabel)
+                if mock:
+                    raxs[-1].set_ylabel(r'$\Lambda_c={!s}$'.format(ovs[i]),
+                                        color='darkred')
+                    targ = '{!s}'.format(ovs[i])
+                else:
+                    raxs[-1].set_ylabel(ylabel)
                 raxs[-1].yaxis.set_label_position("right")
 
             if not frompost:
@@ -167,25 +121,39 @@ def cluster_result_plots(sspfns, oned=False, twod=False, onefig=False,
 
         if twod:
             ssp.pdf_plots(marginals=marg_cols, twod=True, quantile=True,
-                          cmap=plt.cm.Reds)
+                          cmap=cmap)
             figname = sspfn.replace('.csv', '.pdf')
             plt.savefig(figname)
             plt.close()
 
         gs = [ssp.__getattribute__(k + 'g') for k in marg_cols]
+        fmt = r'${0:.3f}^{{+{1:.3f}}}_{{-{2:.3f}}}$'
         line += targ + '& '
-        if gauss:
+        try:
+            g.mean
             line += ' &  '.join(['{:.3f} & {:.3f}'.format(g.mean/1., g.stddev/2.) for g in gs])
-        else:
-            line += ' &  '.join(['${:.3f}\pm^{{+{:.3f}}}_{{-{:.3f}}}$'.format(g[2], np.abs(g[2]-g[0]), np.abs(g[2]-g[1])) for g in gs])
+        except:
+            try:
+                g[2]
+            except:
+                gs = [ssp.__getattribute__('{0:s}q'.format(q)) for q in marg_cols]
+            j = marg_cols.index('logZ')
+            print(targ, gs[j])
+            gs[j] = 0.01524 * 10 ** gs[j]
+            # gs[j][0], gs[j][1] = gs[j][1], gs[j][0]
+            line += ' &  '.join([fmt.format(g[2], g[1]-g[2], g[2]-g[0]) for g in gs])
+
         line += r'\\'
         line += '\n'
+
     print(line)
+
     if onefig:
         fig, axs = fixcorner(fig, axs, ndim)
-        figname = 'combo_{}_ssps.pdf'.format(nssps)
+        figname = 'combo_{}_ssp{}s.pdf'.format(nssps, mstr)
         plt.savefig(figname)
         plt.close()
+
     return
 
 def fixcorner(fig, axs, ndim):
@@ -200,7 +168,7 @@ def fixcorner(fig, axs, ndim):
     fig.text(0.02, 0.5, labelfmt.format('\ln\ Probability'), ha='center',
              va='center', rotation='vertical')
     fig.subplots_adjust(hspace=0.15, wspace=0.15, right=0.95, top=0.98,
-                        bottom=0.1)
+                        bottom=0.15)
 
     unify_axlims(axs)
     return fig, axs
@@ -226,8 +194,9 @@ def parse_args(argv=None):
     parser.add_argument('-t', '--test', action='store_true',
                         help='ssp test')
 
-    parser.add_argument('-o', '--byov', action='store_true',
-                        help='filter by core overshoot')
+    parser.add_argument('--ov5', action='store_true',
+                        help='marginalize over ov=0.5')
+
     parser.add_argument('--oned', action='store_true',
                         help='1d pdf plots')
 
@@ -248,13 +217,9 @@ def parse_args(argv=None):
 def main(argv=None):
     args = parse_args(argv)
 
-    if args.test:
-        ssp_test(args.filename)
-    elif args.byov:
-        bycov(args.filename, oned=args.oned, twod=args.twod, onefig=args.onefig)
-    else:
-        cluster_result_plots(args.filename, oned=args.oned, twod=args.twod,
-                             onefig=args.onefig, mist=args.mist)
+    cluster_result_plots(args.filename, oned=args.oned, twod=args.twod,
+                         onefig=args.onefig, mist=args.mist, mock=args.test,
+                         ovis5=args.ov5)
 
 if __name__ == "__main__":
     sys.exit(main())

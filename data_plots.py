@@ -17,7 +17,7 @@ from bokeh.models import Range1d
 from .utils import replace_all
 from match.scripts.utils import parse_pipeline
 
-FIGEXT = '.pdf'
+FIGEXT = '.png'
 plt.style.use('presentation')
 sns.set_style('ticks')
 
@@ -74,7 +74,7 @@ def _plot_cmd(color, mag, color_err=None, mag_err=None, inds=None, ax=None,
         _, ax = plt.subplots(figsize=(12, 12))
 
     plt_kw = plt_kw or {}
-    default = {'color': 'black', 'ms': 3}
+    default = {'color': 'black', 'ms': 3, 'rasterized': True}
     default.update(plt_kw)
 
     ax.plot(color[inds], mag[inds], 'o', **default)

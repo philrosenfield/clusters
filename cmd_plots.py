@@ -44,35 +44,26 @@ def cmd_limits(targ, filter1):
                          'zoom2_kw': {'xlim': [0.6, 1.1],
                                       'ylim': [22.23, 20.73]}}}
 
-    kw = {'HODGE2': dict(default[filter1],
-                         **{'zoom1_kw': {'xlim': [1.29, 1.6],
-                                         'ylim': [19.5, 20.67]},
-                            'zoom2_kw': {'xlim': [0.3, 0.74],
-                                         'ylim': [19.35, 21.1]}}),
+    kw = {'HODGE2': default[filter1].update(
+              {'zoom1_kw': {'xlim': [1.29, 1.6], 'ylim': [19.5, 20.67]},
+               'zoom2_kw': {'xlim': [0.3, 0.74], 'ylim': [19.35, 21.1]}}),
           'NGC1644': default[filter1],
           'NGC1718': default[filter1],
           'NGC1795': default[filter1],
-          'NGC1917': default[filter1],
-          'NGC1978': dict(default[filter1],
-                          **{'zoom1_kw': {'xlim': [0.885, 1.25],
-                                          'ylim': [19.7, 18.7]},
-                             'zoom2_kw': {'xlim': [0.315, 0.795],
-                                          'ylim': [19.9, 21.9]}}),
-          'NGC2173': dict(default[filter1],
-                          **{'zoom1_kw': {'xlim': [1.34, 1.63],
-                                          'ylim': [19, 20.15]},
-                             'zoom2_kw': {'xlim': [0.43, 0.86],
-                                          'ylim': [20.1, 21.6]}}),
-          'NGC2203': dict(default[filter1],
-                          **{'zoom1_kw': {'xlim': [1.35, 1.62],
-                                          'ylim': [19.3, 20.3]},
-                             'zoom2_kw': {'xlim': [0.37, 0.85],
-                                          'ylim': [19.87, 21.5]}}),
-          'NGC2213': dict(default[filter1],
-                          **{'zoom1_kw': {'xlim': [1.3, 1.62],
-                                          'ylim': [20.2, 19.]},
-                             'zoom2_kw': {'xlim': [0.4, 0.9],
-                                          'ylim': [19.8, 21.5]}})}
+          'NGC2203': default[filter1].update(
+              {'zoom1_kw': {'xlim': [1.35, 1.62], 'ylim': [19.30, 20.30]},
+               'zoom2_kw': {'xlim': [0.37, 0.85], 'ylim': [19.87, 21.50]}}),
+          'NGC2213': default[filter1].update(
+              {'zoom1_kw': {'xlim': [1.30, 1.62], 'ylim': [20.20, 19.00]},
+               'zoom2_kw': {'xlim': [0.40, 0.90], 'ylim': [19.80, 21.50]}})}
+          # 'NGC1917': default[filter1],
+          #'NGC1978': default[filter1].update(
+          # {'zoom1_kw': {'xlim': [0.885, 1.250], 'ylim': [19.7, 18.7]},
+          #    'zoom2_kw': {'xlim': [0.315, 0.795], 'ylim': [19.9, 21.9]}}),
+          #'NGC2173': default[filter1].update(
+          #  {'zoom1_kw': {'xlim': [1.34, 1.63], 'ylim': [19.0, 20.15]},
+          #  'zoom2_kw': {'xlim': [0.43, 0.86], 'ylim': [20.1, 21.60]}}),
+
     return kw[targ]
 
 
@@ -97,8 +88,12 @@ def cmd_plots(loc=None):
         filter1, filter2 = filters
         targ = cluster.split('_')[1]
 
-        cmd_kw = dict({'xy': False, 'zoom': True}, **cmd_limits(targ, filter1))
+        try:
+            cmd_kw = dict({'xy': False, 'zoom': True}, **cmd_limits(targ, filter1))
+        except:
+            continue
         fig, axs = cmd(cluster, filter1, filter2, **cmd_kw)
+        import pdb; pdb.set_trace()
         fig, axs = cmd(memb, filter1, filter2, **cmd_kw, axs=axs, fig=fig,
                        plt_kw={'color': 'darkred'})
         axs[1].set_title('${}$'.format(targ))
@@ -162,7 +157,7 @@ def make_fake_plots():
     """
     fig.subplots_adjust(bottom=0.1, top=0.95, hspace=0.35, wspace=0.07,
                         left=0.15, right=0.85)
-
+    import pdb; pdb.set_trace()
     plt.savefig(os.path.join(here, 'fakes.pdf'))
     print('wrote {}'.format(os.path.join(here, 'fakes.pdf')))
     os.chdir(here)
@@ -171,5 +166,5 @@ if __name__ == "__main__":
     plt.style.use('presentation')
     sns.set_style('ticks')
 
-    # cmd_plots()
+    #cmd_plots()
     make_fake_plots()
