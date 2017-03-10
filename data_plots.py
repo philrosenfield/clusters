@@ -97,7 +97,8 @@ def add_inset(ax0, extent, xlim, ylim):
     return ax
 
 
-def load_obs(filename, filter1, filter2, xyfile=None, fextra='VEGA'):
+def load_obs(filename, filter1, filter2, xyfile=None, fextra='VEGA',
+             crowd=None):
     if xyfile is not None:
         _, _, x, y = np.loadtxt(xyfile, unpack=True)
     else:
@@ -109,14 +110,19 @@ def load_obs(filename, filter1, filter2, xyfile=None, fextra='VEGA'):
             data = fits.getdata(filename)
             keyfmt = '{}_{}'
             errfmt = '{}_ERR'
-            mag = gal.data[keyfmt.format(filter2, fextra)]
-            mag1 = gal.data[keyfmt.format(filter1, fextra)]
-            color = mag1 - mag
-            mag_err = gal.data[errfmt.format(filter2)]
+            if crowd is not None:
+                crd = keyfmt.format(filter2, 'CROWD')
+                crd1 = keyfmt.format(filter1, 'CROWD')
+                inds, = np.nonzero((data[crd] < crowd) & (data[crd1] < crowd))
+                data = data[inds]
+            mag2 = data[keyfmt.format(filter2, fextra)]
+            mag = data[keyfmt.format(filter1, fextra)]
+            color = mag - mag2
+            mag_err = data[errfmt.format(filter1)]
             color_err = \
-                np.sqrt(gal.data[errfmt.format(filter1)] ** 2 + mag_err ** 2)
-            x = gal.data.X
-            y = gal.data.Y
+                np.sqrt(data[errfmt.format(filter1)] ** 2 + mag_err ** 2)
+            x = data.X
+            y = data.Y
         except ValueError:
             print('Problem with {}'.format(filename))
             return None, None
@@ -189,9 +195,9 @@ def adjust_zoomgrid(ax, ax2, ax3, zoom1_kw=None, zoom2_kw=None, reversey=True):
                 'ylim': [19.6, 21.7]}
     zoom1_kw = zoom1_kw or default1
 
-    ax2 = adjust(ax, ax2, zoom1_kw, reversey=reversey)
+    adjust(ax, ax2, zoom1_kw, reversey=reversey)
     if zoom2_kw is not None:
-        ax3 = adjust(ax, ax3, zoom2_kw, reversey=reversey)
+        adjust(ax, ax3, zoom2_kw, reversey=reversey)
 
     for ax_ in [ax2, ax3]:
         ax_.locator_params(axis='x', nbins=4)
@@ -218,13 +224,15 @@ def cmd_axeslimits(filter1, xlim=None, ylim=None):
 
 
 def cmd(obs, filter1, filter2, zoom=False, scatter=False, xlim=None, ylim=None,
-        xy=True, fig=None, axs=None, plt_kw=None, zoom1_kw=None, zoom2_kw=None):
+        xy=True, fig=None, axs=None, plt_kw=None, zoom1_kw=None, zoom2_kw=None,
+        load_obskw=None):
     '''
     plot cmd of data, two insets are hard coded.
     '''
     plt_kw = plt_kw or {}
+    load_obskw = load_obskw or {}
     color, mag, color_err, mag_err, good, x, y = \
-        load_obs(obs, filter1, filter2)
+        load_obs(obs, filter1, filter2, **load_obskw)
 
     if axs is None:
         if not xy:

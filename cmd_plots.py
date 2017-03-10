@@ -6,20 +6,16 @@ from match.scripts.utils import parse_pipeline
 from match.scripts import asts
 from clusters.data_plots import cmd
 
+loc = '/Users/rosenfield/research/clusters/asteca/acs_wfc3/match_runs'
 
 def getfakes():
-    loc = '/Users/rosenfield/research/clusters/asteca/acs_wfc3/match_runs'
     fakes = [os.path.join(loc, f)
              for f in ['12257_HODGE2_F475W-F814W.gst.matchfake',
                        '12257_NGC1718_F475W-F814W.gst.matchfake',
-                       # '9891_NGC1978_F555W_F814W.gst.matchfake',
-                       # '12257_NGC2173_F475W-F814W.gst.matchfake',
                        '12257_NGC2203_F475W-F814W.gst.matchfake',
                        '12257_NGC2213_F475W-F814W.gst.matchfake',
                        '9891_NGC1644_F555W-F814W.gst.matchfake',
                        '9891_NGC1795_F555W-F814W.gst.matchfake']]
-                       # '9891_NGC1917_F555W-F814W.gst.matchfake']]
-                       # '12257_HODGE6_F475W-F814W.gst.matchfake'
     asts_ = [asts.ASTs(fake) for fake in fakes]
     return asts_
 
@@ -44,26 +40,21 @@ def cmd_limits(targ, filter1):
                          'zoom2_kw': {'xlim': [0.6, 1.1],
                                       'ylim': [22.23, 20.73]}}}
 
-    kw = {'HODGE2': default[filter1].update(
-              {'zoom1_kw': {'xlim': [1.29, 1.6], 'ylim': [19.5, 20.67]},
-               'zoom2_kw': {'xlim': [0.3, 0.74], 'ylim': [19.35, 21.1]}}),
+    kw = {'HODGE2': {**default[filter1],
+              **{'zoom1_kw': {'xlim': [1.29, 1.6], 'ylim': [19.5, 20.67]},
+                 'zoom2_kw': {'xlim': [0.3, 0.74], 'ylim': [19.35, 21.1]}}},
           'NGC1644': default[filter1],
           'NGC1718': default[filter1],
-          'NGC1795': default[filter1],
-          'NGC2203': default[filter1].update(
-              {'zoom1_kw': {'xlim': [1.35, 1.62], 'ylim': [19.30, 20.30]},
-               'zoom2_kw': {'xlim': [0.37, 0.85], 'ylim': [19.87, 21.50]}}),
-          'NGC2213': default[filter1].update(
-              {'zoom1_kw': {'xlim': [1.30, 1.62], 'ylim': [20.20, 19.00]},
-               'zoom2_kw': {'xlim': [0.40, 0.90], 'ylim': [19.80, 21.50]}})}
-          # 'NGC1917': default[filter1],
-          #'NGC1978': default[filter1].update(
-          # {'zoom1_kw': {'xlim': [0.885, 1.250], 'ylim': [19.7, 18.7]},
-          #    'zoom2_kw': {'xlim': [0.315, 0.795], 'ylim': [19.9, 21.9]}}),
-          #'NGC2173': default[filter1].update(
-          #  {'zoom1_kw': {'xlim': [1.34, 1.63], 'ylim': [19.0, 20.15]},
-          #  'zoom2_kw': {'xlim': [0.43, 0.86], 'ylim': [20.1, 21.60]}}),
-
+          #'NGC1795': default[filter1],
+          'NGC2203': {**default[filter1],
+              **{'zoom1_kw': {'xlim': [1.35, 1.62], 'ylim': [19.30, 20.30]},
+                 'zoom2_kw': {'xlim': [0.37, 0.85], 'ylim': [19.87, 21.50]}}},
+          'NGC2213': {**default[filter1],
+              **{'zoom1_kw': {'xlim': [1.30, 1.62], 'ylim': [20.20, 19.00]},
+                 'zoom2_kw': {'xlim': [0.40, 0.90], 'ylim': [19.80, 21.50]}}},
+          'NGC1795': {**default[filter1],
+              **{'zoom1_kw': {'xlim': [0.9, 1.3], 'ylim': [18.30, 20.0]},
+                 'zoom2_kw': {'xlim': [0.25, 0.7], 'ylim': [19.50, 21.50]}}}}
     return kw[targ]
 
 
@@ -79,7 +70,7 @@ def cmd_plots(loc=None):
     prefs = list({os.path.splitext(p)[0] for p in glob.glob('*memb*')})
 
     for pref in prefs:
-        cluster = '{}.asteca'.format(pref.replace('_memb', ''))
+        cluster, = glob.glob('{}*fits'.format('_'.join(pref.split('_')[:2])))
         memb = '{}.dat'.format(pref)
         assert os.path.isfile(memb), '{0:s} not found'.format(memb)
         assert os.path.isfile(cluster), '{0:s} not found'.format(cluster)
@@ -87,18 +78,18 @@ def cmd_plots(loc=None):
         _, filters = parse_pipeline(memb)
         filter1, filter2 = filters
         targ = cluster.split('_')[1]
-
-        try:
-            cmd_kw = dict({'xy': False, 'zoom': True}, **cmd_limits(targ, filter1))
-        except:
-            continue
+        if filter1 is None:
+            filter1 = 'F555W'
+            filter2 = 'F814W'
+        cmd_kw = dict({'xy': False, 'zoom': True,
+                       'load_obskw': {'crowd': 1.3}},
+                        **cmd_limits(targ, filter1))
         fig, axs = cmd(cluster, filter1, filter2, **cmd_kw)
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         fig, axs = cmd(memb, filter1, filter2, **cmd_kw, axs=axs, fig=fig,
                        plt_kw={'color': 'darkred'})
         axs[1].set_title('${}$'.format(targ))
-        # if completeness:
-        #     add_completeness(targ, comp=0.9, ax=axs[0])
+
         [ax.ticklabel_format(useOffset=False) for ax in axs]
         plt.savefig(os.path.join(here, '{}.pdf'.format(pref)))
         print('write {}'.format(os.path.join(here, '{}.pdf'.format(pref))))
@@ -166,5 +157,5 @@ if __name__ == "__main__":
     plt.style.use('presentation')
     sns.set_style('ticks')
 
-    #cmd_plots()
-    make_fake_plots()
+    cmd_plots()
+    #make_fake_plots()

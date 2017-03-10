@@ -178,7 +178,7 @@ def cov_complifetimes(hb=False, both=False):
 
 
 
-def plot_compare_tracks(Z=0.004):
+def plot_compare_tracks(Z=0.004, cmd=False):
     # not sure if it's needed, but makes a pretty hrd.
     plt.rcParams['lines.linewidth'] -= 1
     from .data_plots import adjust_zoomgrid, setup_zoomgrid
@@ -210,26 +210,31 @@ def plot_compare_tracks(Z=0.004):
             tracks.append(track)
     fig, axs = setup_zoomgrid()
     for k, t in enumerate(tracks[::-1]):
+        if not cmd:
+            x = t.data['logT']
+            y = t.data['logL']
+        else:
+            import pdb;pdb.set_trace()
         cov_str = t.base.split('OV')[1].split('_')[0]
         label = (r'$\Lambda_c=%s$' % cov_str).replace('OV', '')
         icol, = [i for i, c in enumerate(cov_strs) if cov_str in c]
         if t.mass == masses[0]:
             ax = axs[2]
             if not t.hb:
-                axs[0].plot(t.data['logT'][200:], t.data['logL'][200:],
+                axs[0].plot(x[200:], y[200:],
                             label=label, color=cols[icol])
             else:
-                axs[0].plot(t.data['logT'][200:], t.data['logL'][200:],
+                axs[0].plot(x[200:], y[200:],
                             color=cols[icol])
         else:
-            axs[0].plot(t.data['logT'][200:], t.data['logL'][200:],
+            axs[0].plot(x[200:], y[200:],
                         color=cols[icol])
             ax = axs[1]
 
         if t.hb:
-            ax.plot(t.data['logT'], t.data['logL'], color=cols[icol])
+            ax.plot(x, y, color=cols[icol])
         else:
-            ax.plot(t.data['logT'][1130:], t.data['logL'][1130:],
+            ax.plot(x[1130:], y[1130:],
                     color=cols[icol])
 
     zoom2_kw = {'ylim': [1.75, 2.],
@@ -240,11 +245,15 @@ def plot_compare_tracks(Z=0.004):
                     zoom2_kw=zoom2_kw, reversey=False)
     axs[1].locator_params('x', nbins=3)
     axs[2].locator_params('x', nbins=3)
-    axs[0].set_xlim(4.04, 3.66)
-    axs[0].set_ylim(0.8, 2.5)
+    if not cmd:
+        axs[0].set_xlim(4.04, 3.66)
+        axs[0].set_ylim(0.8, 2.5)
 
-    axs[0].set_ylabel(r'$\log L\ \rm{(L_\odot)}$', fontsize=20)
-    axs[0].set_xlabel(r'$\log T_{\rm{eff}}\ \rm{(K)}$', fontsize=20)
+        axs[0].set_ylabel(r'$\log L\ \rm{(L_\odot)}$', fontsize=20)
+        axs[0].set_xlabel(r'$\log T_{\rm{eff}}\ \rm{(K)}$', fontsize=20)
+        xs = [3.9, 4.]
+        ys = [1.27, 1.75]
+
     axs[0].tick_params(labelsize=16)
     axs[0].legend(loc=0, frameon=False, fontsize=16)
 
@@ -252,60 +261,10 @@ def plot_compare_tracks(Z=0.004):
     for ax, m in zip([axs[2], axs[1]], masses):
         ax.text(0.9, 0.01, '${}M_\odot$'.format(m), transform=ax.transAxes,
                 fontsize=20, ha='right')
-    xs = [3.9, 4.]
-    ys = [1.27, 1.75]
+
     for x, y, m in zip(xs, ys, masses):
         axs[0].text(x, y, '${}M_\odot$'.format(m), fontsize=20, ha='center')
 
     plt.savefig('COV_HRD' + EXT)
-plot_compare_tracks(Z=0.006)
 
-def plot_compare_tracks_old(ptcri_loc, tracks_dir, sandro=True, Z=0.004):
-    # not sure if it's needed, but makes a pretty hrd.
-    cov_strs = ['OV0.3', 'OV0.4', 'OV0.5', 'OV0.6']
-    masses = [1.5, 2., 2.6, 4.]
-    masses = [1.5, 2., 2.6, 4.]
-    ts_dict = {}
-    for cov_str in cov_strs:
-        ts = TrackSet()
-        ts.tracks_base, = fileio.get_dirs(tracks_dir,
-                                          criteria='%s_Z%g_' % (cov_str, Z))
-        ts.find_tracks(masses=masses, hb=False)
-        ts.find_tracks(masses=masses, hb=True)
-        ts._load_ptcri(ptcri_loc, search_extra=cov_str, sandro=sandro)
-        ptcri_attr = ts.select_ptcri('z{}_'.format(str(Z).replace('0.', '')))
-        ptcri = ts.__getattribute__(ptcri_attr)
-        ts.tracks = [ptcri.load_eeps(t, sandro=sandro) for t in ts.tracks]
-        ts.tracks = [ptcri.load_eeps(t, sandro=sandro) for t in ts.tracks]
-        ts_dict[cov_str] = ts
-    # not_so_great(ts_dict)
-    cols = ['darkred', 'orange', 'darkgreen', 'navy', 'purple']
-    ax = plt.subplots(figsize=(6, 12))[1]
-    for i, cov_str in enumerate(cov_strs):
-        for k, t in enumerate(ts_dict[cov_str].tracks):
-            ind = t.sptcri[ptcri.get_ptcri_name('NEAR_ZAM')]
-            if k == 0:
-                label = (r'$\Lambda_c=%s$' % cov_str).replace('OV', '')
-            else:
-                label = None
-            ax.plot(t.data[logT][ind:], t.data[logL][ind:], color=cols[i],
-                    label=label)
-        for t in ts_dict[cov_str].hbtracks:
-            ax.plot(t.data[logT], t.data[logL], color=cols[i])
-
-    ax.set_xlim(4.3, 3.6)
-    ax.set_ylim(.85, 3.5)
-    ax.set_ylabel(r'$\log L\ \rm{(L_\odot)}$', fontsize=20)
-    ax.set_xlabel(r'$\log T_{\rm{eff}}\ \rm{(K)}$', fontsize=20)
-    ax.tick_params(labelsize=16)
-    ax.legend(loc=0, frameon=False, fontsize=16)
-
-    ax.text(0.01, 0.01, '$Z={}$'.format(Z), transform=ax.transAxes,
-            fontsize=20)
-
-    xs = [3.91, 4., 4.08, 4.18]
-    ys = [1.27, 1.75, 2.18, 2.9]
-    for x, y, m in zip(xs, ys, masses):
-        ax.text(x, y, '${}M_\odot$'.format(m), fontsize=20, ha='right')
-
-    plt.savefig('COV_HRD' + EXT)
+plot_compare_tracks(Z=0.006, cmd=True)

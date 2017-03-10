@@ -3,7 +3,7 @@ import numpy as np
 import sys
 import os
 import pandas as pd
-from fitshelper.footprints import parse_poly
+from fitshelper.fitshelper.footprints import parse_poly
 
 
 def read_MAST(filename):
@@ -32,10 +32,18 @@ def polygon_line(polygon_array, color='#ee2345', lw=3, ind=0, alpha=1, label='')
     return pline, name
 
 def get_labels(data):
-    labels = ['{:s} {:s} {:s}'.format(data.target_name.loc[i],
-                                      data.instrument_name.loc[i],
-                                      data.filters.loc[i])
-              for i in range(len(data))]
+    labels = []
+    for i in range(len(data)):
+        try:
+            filters = data.filters.loc[i]
+        except:
+            filter1 = data.filter1.loc[i]
+            filter2 = data.filter2.loc[i]
+            filters = ','.join([f for f in [filter1, filter2] if not '...' in f])
+
+        labels.append('{:s} {:s} {:s}'.format(data.target_name.loc[i],
+                                              data.instrument_name.loc[i],
+                                              filters))
     return labels
 
 def polygon_lines(data, plykw=None):
@@ -43,6 +51,7 @@ def polygon_lines(data, plykw=None):
     Add markers and popup
     """
     plykw = plykw or {}
+
     polys = [parse_poly(p) for p in data.s_region]
     labels = get_labels(data)
     import pdb; pdb.set_trace()
