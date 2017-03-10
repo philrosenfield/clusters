@@ -19,7 +19,13 @@ from match.scripts.utils import parse_pipeline
 
 FIGEXT = '.png'
 plt.style.use('presentation')
+
+sns.set_context('paper', font_scale=2)
 sns.set_style('ticks')
+sns.set_style('whitegrid')
+sd = sns.axes_style()
+sd['text.usetex'] = True
+sns.set(sd)
 
 def bplot_cmd_xy(obs, filter1, filter2, xyfile=None):
     """

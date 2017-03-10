@@ -177,7 +177,6 @@ def cov_complifetimes(hb=False, both=False):
     return ax
 
 
-
 def plot_compare_tracks(Z=0.004, cmd=False):
     # not sure if it's needed, but makes a pretty hrd.
     plt.rcParams['lines.linewidth'] -= 1
@@ -192,10 +191,13 @@ def plot_compare_tracks(Z=0.004, cmd=False):
     tracks = []
     for cov in cov_strs:
         for mass in masses:
+            ext = 'dat'
+            if cmd:
+                ext = 'acs_wfc'
             track_dir, = fileio.get_dirs(os.getcwd(),
                                          criteria='%s_Z%g_' % (cov, Z))
             track_name = fileio.get_files(track_dir,
-                                          '*M{:.2f}*dat'.format(mass))
+                                          '*M{:.2f}*{:s}'.format(mass, ext))
             track = Track(track_name[0], match=True)
             if len(track_name) > 1:
                 if cov == 'OV0.3':
@@ -214,38 +216,32 @@ def plot_compare_tracks(Z=0.004, cmd=False):
             x = t.data['logT']
             y = t.data['logL']
         else:
-            import pdb;pdb.set_trace()
+            x = t.data['F475W'] - t.data['F814W']
+            y = t.data['F814W']
         cov_str = t.base.split('OV')[1].split('_')[0]
         label = (r'$\Lambda_c=%s$' % cov_str).replace('OV', '')
         icol, = [i for i, c in enumerate(cov_strs) if cov_str in c]
         if t.mass == masses[0]:
             ax = axs[2]
             if not t.hb:
-                axs[0].plot(x[200:], y[200:],
-                            label=label, color=cols[icol])
+                axs[0].plot(x[200:], y[200:], label=label, color=cols[icol])
             else:
-                axs[0].plot(x[200:], y[200:],
-                            color=cols[icol])
+                axs[0].plot(x[200:], y[200:], color=cols[icol])
         else:
-            axs[0].plot(x[200:], y[200:],
-                        color=cols[icol])
+            axs[0].plot(x[200:], y[200:], color=cols[icol])
             ax = axs[1]
 
         if t.hb:
             ax.plot(x, y, color=cols[icol])
         else:
-            ax.plot(x[1130:], y[1130:],
-                    color=cols[icol])
+            ax.plot(x[1130:], y[1130:], color=cols[icol])
 
-    zoom2_kw = {'ylim': [1.75, 2.],
-                'xlim': [3.706, 3.685]}
-    zoom1_kw = {'ylim': [1.5, 2.1],
-                'xlim': [3.725, 3.685]}
-    adjust_zoomgrid(axs[0], axs[1], axs[2], zoom1_kw=zoom1_kw,
-                    zoom2_kw=zoom2_kw, reversey=False)
-    axs[1].locator_params('x', nbins=3)
-    axs[2].locator_params('x', nbins=3)
     if not cmd:
+        zoom2_kw = {'ylim': [1.75, 2.],
+                    'xlim': [3.706, 3.685]}
+        zoom1_kw = {'ylim': [1.5, 2.1],
+                    'xlim': [3.725, 3.685]}
+
         axs[0].set_xlim(4.04, 3.66)
         axs[0].set_ylim(0.8, 2.5)
 
@@ -253,18 +249,40 @@ def plot_compare_tracks(Z=0.004, cmd=False):
         axs[0].set_xlabel(r'$\log T_{\rm{eff}}\ \rm{(K)}$', fontsize=20)
         xs = [3.9, 4.]
         ys = [1.27, 1.75]
+        reversey = False
+    else:
+        axs[0].set_ylim(2.6, -1.5)
+        axs[0].set_xlim(-0.15, 1.75)
+
+        axs[0].set_ylabel(r'$\rm{F475W}$', fontsize=20)
+        axs[0].set_xlabel(r'$\rm{F475W-F814W}$', fontsize=20)
+        zoom2_kw = {'ylim': [-0.3, -1],
+                    'xlim': [1.4, 1.65]}
+        zoom1_kw = {'ylim': [0.2, -1],
+                    'xlim': [1.28, 1.5]}
+        xs = [0.6, 0.1]
+        ys = [1.1, 0.1]
+        reversey = True
+
+    adjust_zoomgrid(axs[0], axs[1], axs[2], zoom1_kw=zoom1_kw,
+                    zoom2_kw=zoom2_kw, reversey=reversey)
+    axs[1].locator_params('x', nbins=3)
+    axs[2].locator_params('x', nbins=3)
 
     axs[0].tick_params(labelsize=16)
     axs[0].legend(loc=0, frameon=False, fontsize=16)
 
-    axs[1].set_title('$Z={}$'.format(Z))
+    axs[1].set_title('$Z={}$'.format(Z), fontsize=20)
     for ax, m in zip([axs[2], axs[1]], masses):
         ax.text(0.9, 0.01, '${}M_\odot$'.format(m), transform=ax.transAxes,
                 fontsize=20, ha='right')
 
     for x, y, m in zip(xs, ys, masses):
         axs[0].text(x, y, '${}M_\odot$'.format(m), fontsize=20, ha='center')
-
-    plt.savefig('COV_HRD' + EXT)
+    outfile = 'COV_HRD'
+    if cmd:
+        outfile = 'COV_CMD'
+    plt.savefig(outfile + EXT)
 
 plot_compare_tracks(Z=0.006, cmd=True)
+plot_compare_tracks(Z=0.006)
