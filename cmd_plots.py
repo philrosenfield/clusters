@@ -27,14 +27,14 @@ def cmd_limits(targ, filter1):
     xlim, ylim is the main axis.
     (ylim order doesn't matter, xlim order does)
     """
-    default = {'F555W': {'xlim': [-0.5, 2.9],
-                         'ylim': [26, 16],
+    default = {'F555W': {'xlim': [0., 1.5],
+                         'ylim': [26, 18],
                          'zoom1_kw': {'xlim': [0.8, 1.2],
                                       'ylim': [19.7, 18.7]},
                          'zoom2_kw': {'xlim': [0.15, 0.7],
                                       'ylim': [19.5, 21.5]}},
-               'F475W': {'xlim': [-0.5, 2.9],
-                         'ylim': [26, 16],
+               'F475W': {'xlim': [0., 1.99],
+                         'ylim': [26, 18.5],
                          'zoom1_kw': {'xlim': [1.5, 1.9],
                                       'ylim': [20.7, 19.7]},
                          'zoom2_kw': {'xlim': [0.6, 1.1],
@@ -78,13 +78,13 @@ def cmd_plots(loc=None):
         _, filters = parse_pipeline(memb)
         filter1, filter2 = filters
         targ = cluster.split('_')[1]
-        if filter1 is None:
-            filter1 = 'F555W'
-            filter2 = 'F814W'
+
         cmd_kw = dict({'xy': False, 'zoom': True,
                        'load_obskw': {'crowd': 1.3}},
                         **cmd_limits(targ, filter1))
-        fig, axs = cmd(cluster, filter1, filter2, **cmd_kw)
+
+        fig, axs = cmd(cluster, filter1, filter2, **cmd_kw,
+                       plt_kw={'alpha': 0.3})
         #import pdb; pdb.set_trace()
         fig, axs = cmd(memb, filter1, filter2, **cmd_kw, axs=axs, fig=fig,
                        plt_kw={'color': 'darkred'})

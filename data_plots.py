@@ -19,13 +19,7 @@ from match.scripts.utils import parse_pipeline
 
 FIGEXT = '.png'
 plt.style.use('presentation')
-
-sns.set_context('paper', font_scale=2)
 sns.set_style('ticks')
-sns.set_style('whitegrid')
-sd = sns.axes_style()
-sd['text.usetex'] = True
-sns.set(sd)
 
 def bplot_cmd_xy(obs, filter1, filter2, xyfile=None):
     """
@@ -71,7 +65,7 @@ def bplot_cmd_xy(obs, filter1, filter2, xyfile=None):
 
 
 def _plot_cmd(color, mag, color_err=None, mag_err=None, inds=None, ax=None,
-              plt_kw=None):
+              plt_kw=None, star_by_starerr=False):
     '''plot a cmd with errors'''
     if inds is None:
         inds = np.arange(len(mag))
@@ -80,17 +74,42 @@ def _plot_cmd(color, mag, color_err=None, mag_err=None, inds=None, ax=None,
         _, ax = plt.subplots(figsize=(12, 12))
 
     plt_kw = plt_kw or {}
-    default = {'color': 'black', 'ms': 3, 'rasterized': True}
+    default = {'color': 'black', 'ms': 4, 'rasterized': True}
     default.update(plt_kw)
 
-    ax.plot(color[inds], mag[inds], 'o', **default)
+    ax.plot(color[inds], mag[inds], '.', **default)
 
     if color_err is not None and mag_err is not None:
-        ax.errorbar(color[inds], mag[inds], fmt='none',
-                    xerr=color_err[inds], yerr=mag_err[inds],
-                    capsize=0, ecolor='gray')
+        if star_by_starerr:
+            ax.errorbar(color[inds], mag[inds], fmt='none',
+                        xerr=color_err[inds], yerr=mag_err[inds],
+                        capsize=0, ecolor='gray')
+        else:
+            median_err(color[inds], mag[inds], color_err[inds], mag_err[inds],
+                      ax=ax)
     return ax
 
+
+def median_err(color, mag, color_err, mag_err, ax=None, dmag=1.):
+    if ax is None:
+        mmin = np.min(mag)
+        mmax = np.max(mag)
+        cplace = np.median(color) - 2.5 * np.std(color)
+    else:
+        mmin = np.min(ax.get_ylim())
+        mmax = np.max(ax.get_ylim())
+        cplace = ax.get_xlim()[0] + 0.25
+
+    magbins = np.arange(np.floor(mmin), np.ceil(mmax), dmag)
+    idix = np.digitize(mag, magbins)
+    merrs = np.array([np.mean(mag_err[idix==i]) for i in range(len(magbins))])
+    merrs[np.isnan(merrs)] = 0
+    cerrs = np.array([np.mean(color_err[idix==i]) for i in range(len(magbins))])
+    carr = np.repeat(cplace, len(magbins))
+    if ax is not None:
+        ax.errorbar(carr, magbins, fmt='none', xerr=cerrs, yerr=merrs, lw=1.4,
+                    capsize=0, ecolor='k')
+    return magbins, carr, merrs, cerrs
 
 def add_inset(ax0, extent, xlim, ylim):
     '''add an inset axes to the plot and a rectangle on the main plot'''
@@ -162,6 +181,7 @@ def add_rect(ax, xlim, ylim, kw=None):
     ax.add_patch(rect)
     return
 
+
 def setup_zoomgrid():
     """
     Set up a 6 panel plot, 2x2 grid is one main axes and the other 2 are
@@ -176,7 +196,7 @@ def setup_zoomgrid():
     ax3 = plt.subplot2grid((2,3), (1,2))
 
     plt.subplots_adjust(wspace=0.15, right=0.88)
-    ax.tick_params(right=False, top=False)
+    ax.tick_params(right=False, top=False, bottom=True, left=True)
     for ax_ in [ax2, ax3]:
         ax_.tick_params(labelright=True, labelleft=False,
                         left=False, top=False)
@@ -231,11 +251,12 @@ def cmd_axeslimits(filter1, xlim=None, ylim=None):
 
 def cmd(obs, filter1, filter2, zoom=False, scatter=False, xlim=None, ylim=None,
         xy=True, fig=None, axs=None, plt_kw=None, zoom1_kw=None, zoom2_kw=None,
-        load_obskw=None):
+        load_obskw=None, plt_kwz = None):
     '''
     plot cmd of data, two insets are hard coded.
     '''
     plt_kw = plt_kw or {}
+    plt_kwz = plt_kwz or plt_kw.copy()
     load_obskw = load_obskw or {}
     color, mag, color_err, mag_err, good, x, y = \
         load_obs(obs, filter1, filter2, **load_obskw)
@@ -268,9 +289,9 @@ def cmd(obs, filter1, filter2, zoom=False, scatter=False, xlim=None, ylim=None,
 
     if zoom:
         ax2 = _plot_cmd(color, mag, color_err=color_err, mag_err=mag_err,
-                        inds=good, ax=ax2, plt_kw=plt_kw)
+                        inds=good, ax=ax2, plt_kw=plt_kwz)
         ax3 = _plot_cmd(color, mag, color_err=color_err, mag_err=mag_err,
-                        inds=good, ax=ax3, plt_kw=plt_kw)
+                        inds=good, ax=ax3, plt_kw=plt_kwz)
         axs = adjust_zoomgrid(ax, ax2, ax3, zoom1_kw=zoom1_kw, zoom2_kw=zoom2_kw)
 
     if xy:
