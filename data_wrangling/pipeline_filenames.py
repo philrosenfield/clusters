@@ -4,9 +4,10 @@ import sys
 
 from astropy.io import fits
 
-def fix_filename(fname, fext='VEGA', clobber=False, newdir=None):
+def fix_filename(fname, fext='VEGA', clobber=False, newdir=None, extra=''):
     newdir = newdir or os.getcwd()
     base, name = os.path.split(fname)
+
     mv = 'mv -i'
     if os.path.isdir(newdir):
         base = newdir
@@ -22,13 +23,13 @@ def fix_filename(fname, fext='VEGA', clobber=False, newdir=None):
         else:
             pref = name.split('.')[0]
             ext = '.'.join(name.split('.')[1:])
-            nname = '_'.join([pref, filters, ext])
+            nname = '_'.join([pref, filters, extra, ext]).replace('__', '')
             nfname = os.path.join(base, nname)
             cmd = '{} {} {}'.format(mv, fname, nfname)
+            print(cmd)
             if clobber:
                 os.system(cmd)
-            else:
-                print(cmd)
+                
     return
 
 
@@ -41,6 +42,9 @@ def main(argv):
     parser.add_argument('-f', '--filterext', type=str, default='VEGA',
                         help='string next to filter in the columnname e.g., F555W_VEGA')
 
+    parser.add_argument('-e', '--extra', type=str,
+                        help='extra string to add to filename')
+
     parser.add_argument('-o', '--outdir', type=str,
                         help='output directory if different')
 
@@ -50,7 +54,7 @@ def main(argv):
     args = parser.parse_args(argv)
     for fname in args.filenames:
         fix_filename(fname, fext=args.filterext, clobber=args.wreckless,
-                     newdir=args.outdir)
+                     newdir=args.outdir, extra=args.extra)
 
 if __name__ == '__main__':
     main(sys.argv[1:])

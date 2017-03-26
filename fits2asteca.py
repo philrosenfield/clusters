@@ -12,20 +12,19 @@ def main(argv=None):
     args =  parser.parse_args(argv)
 
     for fitsname in args.fitsnames:
-        fname = fitsname.replace('fits','asteca')
+        fname = fitsname.replace('fits', 'asteca')
         data = fits.getdata(fitsname)
 
         filters = [c for c in data.dtype.names if c.endswith('VEGA')]
-        if len(filters) > 2:
-            filters = [f for f in filters if not '336' in f]
-        filter1, filter2 = filters
-        print(filters)
-        fnamesp = fname.split('_')
-        fnamesp[2] = '-'.join(filters)
-        fname = '_'.join(fnamesp).replace('_VEGA', '')
-        np.savetxt(fname, asteca_fmt(data, filter1, filter2, crowd=1.3),
-                   fmt='%.6f')
-        print('wrote {}'.format(fname))
+        filter2 = 'F814W_VEGA'
+        filters.pop(filters.index(filter2))
+        for filter1 in filters:
+            fnamesp = fname.split('_')
+            fnamesp[2] = '-'.join([filter1, filter2])
+            nfname = '_'.join(fnamesp).replace('_VEGA', '')
+            np.savetxt(nfname, asteca_fmt(data, filter1, filter2, crowd=1.3),
+                       fmt='%.6f')
+            print('wrote {}'.format(nfname))
 
 if __name__ == "__main__":
     sys.exit(main())
