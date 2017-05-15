@@ -23,6 +23,8 @@ def fix_filename(fname, fext='VEGA', clobber=False, newdir=None, extra=''):
         else:
             pref = name.split('.')[0]
             ext = '.'.join(name.split('.')[1:])
+            if not ext.startswith('.'):
+                ext = '.' + ext
             nname = '_'.join([pref, filters, extra, ext]).replace('__', '')
             nfname = os.path.join(base, nname)
             cmd = '{} {} {}'.format(mv, fname, nfname)
@@ -42,7 +44,7 @@ def main(argv):
     parser.add_argument('-f', '--filterext', type=str, default='VEGA',
                         help='string next to filter in the columnname e.g., F555W_VEGA')
 
-    parser.add_argument('-e', '--extra', type=str,
+    parser.add_argument('-e', '--extra', type=str, default='',
                         help='extra string to add to filename')
 
     parser.add_argument('-o', '--outdir', type=str,
